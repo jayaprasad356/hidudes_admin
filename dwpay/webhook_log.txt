@@ -1,0 +1,683 @@
+Incoming Data: Array
+(
+)
+
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930U05Q90847121
+    [status] => Credit
+    [shorturl] => https://imjo.in/uDAxH4
+    [longurl] => https://www.instamojo.com/@gmworks/644437ad1b7547379f1904a58ee61e3b
+    [purpose] => test
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => jayaprasad356@gmail.com
+    [buyer_name] => jp
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 644437ad1b7547379f1904a58ee61e3b
+    [mac] => 4d92ee5f6c5a3997207010e31c4dd2bdba6152d5
+)
+
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930G05Q90847683
+    [status] => Credit
+    [shorturl] => https://imjo.in/TNWeZ8
+    [longurl] => https://www.instamojo.com/@gmworks/897fd10616ca403f9c0a229e90676059
+    [purpose] => 47-14-3-123
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => jayaprasad356@gmail.com
+    [buyer_name] => jp
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 897fd10616ca403f9c0a229e90676059
+    [mac] => d84ec76f209b0fc6d84c9af7df91aae9f6542395
+)
+
+Parsed Purpose Data: 
+Order ID: 47
+Address ID: 14
+Product ID: 3
+Quantity: 123
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930M05Q90847833
+    [status] => Credit
+    [shorturl] => https://imjo.in/PPR3DU
+    [longurl] => https://www.instamojo.com/@gmworks/b5292bef5785404db9d80a74ace2b007
+    [purpose] => 1-1-175-1
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => b5292bef5785404db9d80a74ace2b007
+    [mac] => f40a22f1f63db05aa755b4d8271faa39628b46cd
+)
+
+Parsed Purpose Data: 
+User ID: 1
+Address ID: 1
+Product ID: 175
+Quantity: 1
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930A05Q90848595
+    [status] => Credit
+    [shorturl] => https://imjo.in/RtJP4T
+    [longurl] => https://www.instamojo.com/@gmworks/d1767bda4e024941a51064fde486d106
+    [purpose] => 1-175-1-2
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => jayaprasad356@gmail.com
+    [buyer_name] => jp
+    [buyer_phone] => +917418676356
+    [payment_request_id] => d1767bda4e024941a51064fde486d106
+    [mac] => 8aee983e605628d1d03ff6fee852fd384a514bd7
+)
+
+Parsed Purpose Data: 
+User ID: 1
+Address ID: 175
+Product ID: 1
+Quantity: 2
+API Response: {"success":true,"message":"Order placed successfully.","order_id":192,"total_price":549}
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930305Q90854416
+    [status] => Credit
+    [shorturl] => https://imjo.in/exfadx
+    [longurl] => https://www.instamojo.com/@gmworks/8eea5010e9254921836062a43994e650
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 8eea5010e9254921836062a43994e650
+    [mac] => c766cffb691129f6aa7fff63c177f57f2371a420
+)
+
+Parsed Purpose Data: 
+User ID: 9
+Address ID: 178
+Product ID: 4
+Quantity: 1
+API Response: {"success":true,"message":"Order placed successfully.","order_id":193,"total_price":179}
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930Z05Q90854477
+    [status] => Failed
+    [shorturl] => https://imjo.in/A8uNfM
+    [longurl] => https://www.instamojo.com/@gmworks/9d1852528bfc43e480c2a7820d5932cd
+    [purpose] => 1-175-1-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 9d1852528bfc43e480c2a7820d5932cd
+    [mac] => 4418b7d8da76d3dd77dbf2a038980c8ddde803cc
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930Y05Q90854508
+    [status] => Failed
+    [shorturl] => https://imjo.in/yTpzu8
+    [longurl] => https://www.instamojo.com/@gmworks/a8b0b0d096ad487e8ffe51fefa091043
+    [purpose] => 1-175-1-2
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => a8b0b0d096ad487e8ffe51fefa091043
+    [mac] => 3cfe17ed86bfde006ae2f58a9c8d0bfc91912cf8
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930505Q90854546
+    [status] => Credit
+    [shorturl] => https://imjo.in/DADWRc
+    [longurl] => https://www.instamojo.com/@gmworks/13adc422953a44ddac82a7cb8d067d00
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 13adc422953a44ddac82a7cb8d067d00
+    [mac] => a5f0c9ca1a931e8027a8dd59fa0c4aadb300774b
+)
+
+Parsed Purpose Data: 
+User ID: 9
+Address ID: 178
+Product ID: 4
+Quantity: 1
+API Response: {"success":true,"message":"Order placed successfully.","order_id":1,"total_price":179}
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930V05Q90854656
+    [status] => Failed
+    [shorturl] => https://imjo.in/q8cjns
+    [longurl] => https://www.instamojo.com/@gmworks/3300422d641d4cbc907351bdf95890d4
+    [purpose] => 1-175-1-2
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 3300422d641d4cbc907351bdf95890d4
+    [mac] => 36965edc5d3e7e3951033311c27dadae790944b3
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930W05Q90854671
+    [status] => Failed
+    [shorturl] => https://imjo.in/MujxT7
+    [longurl] => https://www.instamojo.com/@gmworks/76838cfb1d4e4b2ea17d5c428485cfd3
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 76838cfb1d4e4b2ea17d5c428485cfd3
+    [mac] => 5e642471115da53a10e863b8410e82a46699ce05
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930405Q90857228
+    [status] => Failed
+    [shorturl] => https://imjo.in/AJ6PRQ
+    [longurl] => https://www.instamojo.com/@gmworks/2343b5ef53664eb5895c8815697268d2
+    [purpose] => 9-178-1-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 2343b5ef53664eb5895c8815697268d2
+    [mac] => 70b01979d235d16fd6344e0658ac76c2cfb26c05
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930X05Q90857454
+    [status] => Failed
+    [shorturl] => https://imjo.in/YGxTH7
+    [longurl] => https://www.instamojo.com/@gmworks/f634c08093864b568586ca7ba5111c8f
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => f634c08093864b568586ca7ba5111c8f
+    [mac] => f8a2a16492ea73e4c14714b1817c555c9611b0fc
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930E05Q90857462
+    [status] => Failed
+    [shorturl] => https://imjo.in/ayVgrU
+    [longurl] => https://www.instamojo.com/@gmworks/262f62f8ec164d14a5ada33342acf6c0
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 262f62f8ec164d14a5ada33342acf6c0
+    [mac] => a2a8587dffa4aceb1642a78a65484796b81a0e74
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930W05Q90857495
+    [status] => Failed
+    [shorturl] => https://imjo.in/fq9Kkx
+    [longurl] => https://www.instamojo.com/@gmworks/102a3ca616fb4011adb96a455059a92a
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => 102a3ca616fb4011adb96a455059a92a
+    [mac] => a9beae5b68edce7b4c87398103fa393b45118788
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930U05Q90858756
+    [status] => Failed
+    [shorturl] => https://imjo.in/MvXYRH
+    [longurl] => https://www.instamojo.com/@gmworks/1ee0e78a458d4ddc9515c9dab8293a1b
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 1ee0e78a458d4ddc9515c9dab8293a1b
+    [mac] => 46f366befee61da74b3507fb0a0347682340149f
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930Z05Q90858879
+    [status] => Failed
+    [shorturl] => https://imjo.in/HYV89E
+    [longurl] => https://www.instamojo.com/@gmworks/de4b0d3904d342188c7a8ef0aaefc92d
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => de4b0d3904d342188c7a8ef0aaefc92d
+    [mac] => bd11d41919d4c5f613ecae2f2e799be8f5811f3c
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930305Q90858946
+    [status] => Failed
+    [shorturl] => https://imjo.in/ZgsSbC
+    [longurl] => https://www.instamojo.com/@gmworks/47fe5e3d104b47d8ae5723581cda568e
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 47fe5e3d104b47d8ae5723581cda568e
+    [mac] => ed4b7340fc3f2185f7086e847bea4a255f643dc2
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930505Q90858990
+    [status] => Failed
+    [shorturl] => https://imjo.in/eEe8UU
+    [longurl] => https://www.instamojo.com/@gmworks/709640e3d68e4052adb2e6c91435665d
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 709640e3d68e4052adb2e6c91435665d
+    [mac] => e6e7855a8ebae314da460b5a205fdf225f1d9fa0
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930A05Q90859148
+    [status] => Failed
+    [shorturl] => https://imjo.in/D9DKau
+    [longurl] => https://www.instamojo.com/@gmworks/1facd2b7b49b41238b84652447a6f2eb
+    [purpose] => 1-175-4-1
+    [amount] => 179.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 1facd2b7b49b41238b84652447a6f2eb
+    [mac] => 736c6806129892f2b67fe47616ca6bd3085b747e
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930905Q90859776
+    [status] => Failed
+    [shorturl] => https://imjo.in/62gbNv
+    [longurl] => https://www.instamojo.com/@gmworks/5c025ed82bbc460e8dc19f67e5af2550
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 5c025ed82bbc460e8dc19f67e5af2550
+    [mac] => 23a59311ec679be39e3ac7805604990cfecf439c
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930R05Q90859843
+    [status] => Failed
+    [shorturl] => https://imjo.in/5T647U
+    [longurl] => https://www.instamojo.com/@gmworks/d53aecb722c44ca480fed6f30ae99283
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => d53aecb722c44ca480fed6f30ae99283
+    [mac] => f79c78bea3a232f461e0dfa87ad1d0390e02d914
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930A05Q90860144
+    [status] => Failed
+    [shorturl] => https://imjo.in/z3sEmK
+    [longurl] => https://www.instamojo.com/@gmworks/910871ecb91f41a1849bdf962cd8c70c
+    [purpose] => 1-175-4-1
+    [amount] => 179.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 910871ecb91f41a1849bdf962cd8c70c
+    [mac] => f3652f4d9b616e2e4ae166b75b2d5c378836bfa0
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930P05Q90860246
+    [status] => Failed
+    [shorturl] => https://imjo.in/AXRaMM
+    [longurl] => https://www.instamojo.com/@gmworks/3c45b305f1a840bfb41dcf762322bc9a
+    [purpose] => 1-175-4-1
+    [amount] => 179.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 3c45b305f1a840bfb41dcf762322bc9a
+    [mac] => c6559a7246df826f168436781ad65018a6df6a66
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930605Q90860566
+    [status] => Failed
+    [shorturl] => https://imjo.in/AdECxG
+    [longurl] => https://www.instamojo.com/@gmworks/0dfc48cff78646488905c4c9c984ffc5
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 0dfc48cff78646488905c4c9c984ffc5
+    [mac] => 2a8bd990b6703ef9232cd9b5f0414e1cb3c12826
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4930G05Q90860659
+    [status] => Failed
+    [shorturl] => https://imjo.in/uCfW4T
+    [longurl] => https://www.instamojo.com/@gmworks/d492bfa0f6e34b4183e6fc9571b46abc
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => d492bfa0f6e34b4183e6fc9571b46abc
+    [mac] => 10574f5bf8302fe665e4a2051cd7380df1bb0c68
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01905Q88297696
+    [status] => Credit
+    [shorturl] => https://imjo.in/GtGeTF
+    [longurl] => https://www.instamojo.com/@gmworks/d977e92cd708498d969638ae1ebd36f0
+    [purpose] => 1-175-1-1
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => d977e92cd708498d969638ae1ebd36f0
+    [mac] => 9d5fe443e84cdb2bd0e8d3a747d8def05093ffec
+)
+
+Parsed Purpose Data: 
+User ID: 1
+Address ID: 175
+Product ID: 1
+Quantity: 1
+API Response: {"success":true,"message":"Order placed successfully.","order_id":3,"total_price":549}
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01Q05Q88297796
+    [status] => Failed
+    [shorturl] => https://imjo.in/eJYwUF
+    [longurl] => https://www.instamojo.com/@gmworks/dd765234d2274f9283ccd069f62d1503
+    [purpose] => 9-178-1-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => dd765234d2274f9283ccd069f62d1503
+    [mac] => adc3aee75b9c99e49be62a5de7a039725e771634
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01U05Q88297830
+    [status] => Credit
+    [shorturl] => https://imjo.in/3fAxfp
+    [longurl] => https://www.instamojo.com/@gmworks/a4e86c3c3935417ab359455f3f97f916
+    [purpose] => 9-178-4-1
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917418676356
+    [payment_request_id] => a4e86c3c3935417ab359455f3f97f916
+    [mac] => 02bd2de2374501e76b5ac28aa00a5f2929a41a7c
+)
+
+Parsed Purpose Data: 
+User ID: 9
+Address ID: 178
+Product ID: 4
+Quantity: 1
+API Response: {"success":true,"message":"Order placed successfully.","order_id":5,"total_price":179}
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01R05Q88299367
+    [status] => Failed
+    [shorturl] => https://imjo.in/u7WKhm
+    [longurl] => https://www.instamojo.com/@gmworks/cac6cc42545648ac9af6b89fc3ff117e
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => cac6cc42545648ac9af6b89fc3ff117e
+    [mac] => 3ed3d65ba682aa8334438d4236702bf1fe4d4d9b
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01I05Q88299520
+    [status] => Failed
+    [shorturl] => https://imjo.in/DMhTJv
+    [longurl] => https://www.instamojo.com/@gmworks/90d3357089344e6a83af75e2b97d3c7e
+    [purpose] => 1-175-1-1
+    [amount] => 549.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 90d3357089344e6a83af75e2b97d3c7e
+    [mac] => fbeb88b1ed5532eec3f4dd346dfd6c366aa9cee0
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01A05Q88299627
+    [status] => Failed
+    [shorturl] => https://imjo.in/PW4Wh3
+    [longurl] => https://www.instamojo.com/@gmworks/6de7c656732a4e42a158f93d36e7e73e
+    [purpose] => 1-175-4-1
+    [amount] => 179.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 6de7c656732a4e42a158f93d36e7e73e
+    [mac] => 932ea46147caf27192260656334cdefc16b9b8b8
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01U05Q88299651
+    [status] => Failed
+    [shorturl] => https://imjo.in/eXQJdy
+    [longurl] => https://www.instamojo.com/@gmworks/3c4c9119daad498a9ce18a3166b49110
+    [purpose] => 1-175-1-1
+    [amount] => 10.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 3c4c9119daad498a9ce18a3166b49110
+    [mac] => b5ae6ca466ce38d3afde3fc1cc82594d53bfb58b
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a01V05Q88302215
+    [status] => Failed
+    [shorturl] => https://imjo.in/K8jU2C
+    [longurl] => https://www.instamojo.com/@gmworks/bd14e8d0fbde4c8cb1720d13cb9c1d5a
+    [purpose] => 385-364-2-1
+    [amount] => 349.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => default@example.com
+    [buyer_name] => testing
+    [buyer_phone] => +918883863593
+    [payment_request_id] => bd14e8d0fbde4c8cb1720d13cb9c1d5a
+    [mac] => 6c430c2d6476897e3bba7f8ebeda6cda0fe39270
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a03Q05Q11986659
+    [status] => Credit
+    [shorturl] => https://imjo.in/RnCHMm
+    [longurl] => https://www.instamojo.com/@gmworks/63cebdaf1b234966bc1628c2cbd9be27
+    [purpose] => 1-175-1-2
+    [amount] => 10.00
+    [fees] => 0.15
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +916382088746
+    [payment_request_id] => 63cebdaf1b234966bc1628c2cbd9be27
+    [mac] => ad08064bf636f3f228fbc3094ac21bdc8ba21f09
+)
+
+Parsed Purpose Data: 
+User ID: 1
+Address ID: 175
+Product ID: 1
+Quantity: 2
+API Response: {"success":true,"message":"Order placed successfully.","order_id":7,"total_price":1098}
+Incoming Data: Array
+(
+    [payment_id] => MOJO4a03C05Q11992250
+    [status] => Failed
+    [shorturl] => https://imjo.in/dUXqBk
+    [longurl] => https://www.instamojo.com/@gmworks/5d64c9d7a8ea4bf09b0c954045a3ea33
+    [purpose] => 181-177-5-1
+    [amount] => 999.00
+    [fees] => 
+    [currency] => INR
+    [buyer] => test@gmail.com
+    [buyer_name] => Guest
+    [buyer_phone] => +917010565083
+    [payment_request_id] => 5d64c9d7a8ea4bf09b0c954045a3ea33
+    [mac] => 7505e0a6c824d96c34f6378b517da3d0ccbe9eb1
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+)
+
+Error: Invalid status or status not Credit
+Incoming Data: Array
+(
+    [user_id] => 21
+    [coins_id] => 1
+)
+
+Error: Invalid status or status not Credit

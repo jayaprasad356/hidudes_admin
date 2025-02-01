@@ -1,0 +1,45 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.gmwapp.hima",
+      "sha256_cert_fingerprints": [
+        "84:4D:17:3D:E2:59:A4:2B:95:DC:21:74:4A:14:A4:6E:E6:54:D1:73:F2:D8:92:02:DC:88:E1:35:94:48:77:46"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.gmwapp.hima",
+      "sha256_cert_fingerprints": [
+        "85:37:DD:B0:7F:D0:1C:8F:8B:ED:29:3C:09:9B:C9:A1:39:29:BF:5F:3B:99:E5:C0:3A:30:DE:7D:77:7A:54:9F"
+      ]
+    }
+  },
+  [
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.gmwapp.hima",
+        "sha256_cert_fingerprints":
+          ["A9:EA:EB:51:24:0D:9B:D0:16:17:7F:B7:88:78:28:A9:E9:94:50:33:D6:7E:9E:E9:44:EE:86:18:50:37:9A:A4"]
+      }
+    }
+  ],
+  [
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.gmwapp.hima",
+        "sha256_cert_fingerprints":
+          ["9A:3E:5C:C0:45:4B:52:6B:61:EA:02:A8:F0:39:27:8B:33:E6:56:15:8E:93:94:7C:B7:F1:4E:30:99:6E:0E:19"]
+      }
+    }
+  ]
+  
+]
