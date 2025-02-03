@@ -84,9 +84,9 @@ if (isset($tokenData['access_token'])) {
         'buyer_name' => $buyer_name,
         'email' => $email,
         'phone' => $phone,
-        'redirect_url' => 'https://himaapp.in/path/to/serid',
+        'redirect_url' => 'https://hidude.in/path/to/serid',
         'send_email' => 'True',
-        'webhook' => 'https://himaapp.in/dwpay/webhook.php',
+        'webhook' => 'https://hidude.in/dwpay/webhook.php',
         'allow_repeated_payments' => 'False',
     ];
 

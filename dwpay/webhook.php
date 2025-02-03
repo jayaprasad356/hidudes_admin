@@ -22,7 +22,7 @@ if (isset($incomingData['status']) && $incomingData['status'] === 'Credit') {
         $logData .= "Coins ID: $coins_id\n";
 
         // Call the external API with form data if status is Credit
-        $apiUrl = 'https://himaapp.in/api/auth/add_coins';
+        $apiUrl = 'https://hidude.in/api/auth/add_coins';
 
         $formData = [
             'user_id' => $user_id,
