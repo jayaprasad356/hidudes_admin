@@ -8,12 +8,12 @@
     <div class="card-body">
         <!-- Logo Section -->
         <div class="text-center mb-4">
-            <img src="{{ asset('storage/uploads/logo/hima.png') }}" alt="Logo" width="100">
+            <img src="{{ asset('storage/uploads/logo/hi_dude.png') }}" alt="Logo" width="100">
         </div>
 
         <!-- Login Title -->
         <div>
-           <center><h2 class="mb-3 f-w-600">{{ __('Hi Ma - Login page') }}</h2></center> 
+           <center><h2 class="mb-3 f-w-600">{{ __('Hi Dude - Login page') }}</h2></center> 
         </div>
 
         <!-- Login Form -->

@@ -60,7 +60,7 @@
 
     <!-- Favicon icon -->
     <link rel="icon"
-        href="{{ asset('storage/uploads/logo/hima.png') }}"
+        href="{{ asset('storage/uploads/logo/hi_dude.png') }}"
         type="image/x-icon" />
     <!-- for calender-->
     <link rel="stylesheet" href="{{ asset('assets/css/plugins/main.css') }}">

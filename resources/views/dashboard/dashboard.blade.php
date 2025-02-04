@@ -3,10 +3,11 @@
 @section('page-title')
     {{ __('Dashboard') }}
 @endsection
+
 @php
     $setting = App\Models\Utility::settings();
-    
 @endphp
+
 @section('content')
     <div class="row">
         @if (session('status'))
@@ -14,34 +15,32 @@
                 {{ session('status') }}
             </div>
         @endif
+        
+        <!-- Language Dropdown -->
+        <div class="col-xxl-12 mb-3">
+            <div class="d-flex justify-content-start">
+            <form method="GET" action="{{ route('dashboard') }}">
+                <div class="input-group">
+                <span class="input-group-text" style="background-color:#48494b; color: white;">{{ __('Filter by Language') }}</span>
+                <select name="language" onchange="this.form.submit()" class="form-select" aria-label="Language" style="width: 300px;">
+                    <option value="all" {{ request('language') == 'all' ? 'selected' : '' }}>All Languages</option>
+                    <option value="Tamil" {{ request('language') == 'Tamil' ? 'selected' : '' }}>Tamil</option>
+                    <option value="Telugu" {{ request('language') == 'Telugu' ? 'selected' : '' }}>Telugu</option>
+                    <option value="Hindi" {{ request('language') == 'Hindi' ? 'selected' : '' }}>Hindi</option>
+                    <option value="Kannada" {{ request('language') == 'Kannada' ? 'selected' : '' }}>Kannada</option>
+                    <option value="Punjabi" {{ request('language') == 'Punjabi' ? 'selected' : '' }}>Punjabi</option>
+                    <option value="Malayalam" {{ request('language') == 'Malayalam' ? 'selected' : '' }}>Malayalam</option>
+                </select>
+                </div>
+            </form>
+            </div>
+        </div>
 
             <div class="col-xxl-12">
 
                 {{-- start --}}
                 <div class="row">
 
-                    <!-- <div class="col-lg-4 col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="row align-items-center justify-content-between">
-                                    <div class="col-auto mb-3 mb-sm-0">
-                                        <div class="d-flex align-items-center">
-                                            <div class="theme-avtar bg-primary">
-                                                <i class="ti ti-users"></i>
-                                            </div>
-                                            <div class="ms-3">
-                                                <small class="text-muted">{{ __('Total') }}</small>
-                                                <h6 class="m-0">{{ __('Avatars') }}</h6>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto text-end">
-                                        <h4 class="m-0 text-primary">{{ $avatar_count }}</h4>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div> -->
                     <div class="col-lg-4 col-md-6">
                         <div class="card">
                             <div class="card-body">
@@ -187,8 +186,8 @@
                                             <i class="ti ti-currency-dollar"></i>
                                         </div>
                                             <div class="ms-3">
-                                                <small class="text-muted">{{ __('Today') }}</small>
-                                                <h6 class="m-0">{{ __('Recharge Count') }}</h6>
+                                                <small class="text-muted">{{ __('Today Recharge') }}</small>
+                                                <h6 class="m-0">{{ __('Count') }}</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -233,8 +232,8 @@
                                                 <i class="ti ti-currency-dollar"></i>
                                             </div>
                                             <div class="ms-3">
-                                                <small class="text-muted">{{ __('Yesterday') }}</small>
-                                                <h6 class="m-0">{{ __('Recharge Count') }}</h6>
+                                                <small class="text-muted">{{ __('Yesterday Recharge') }}</small>
+                                                <h6 class="m-0">{{ __('Count') }}</h6>
                                             </div>
                                         </div>
                                     </div>

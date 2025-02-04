@@ -27,6 +27,19 @@
                             </select>
                         </div>
 
+                        <div class="me-5">
+                            <label for="language">{{ __('Filter by Language') }}</label>
+                            <select name="language" id="language" class="form-control status-filter" onchange="this.form.submit()">
+                            <option value="all" {{ request('language') == 'all' ? 'selected' : '' }}>All</option>
+                            <option value="Tamil" {{ request('language') == 'Tamil' ? 'selected' : '' }}>Tamil</option>
+                            <option value="Telugu" {{ request('language') == 'Telugu' ? 'selected' : '' }}>Telugu</option>
+                            <option value="Hindi" {{ request('language') == 'Hindi' ? 'selected' : '' }}>Hindi</option>
+                            <option value="Kannada" {{ request('language') == 'Kannada' ? 'selected' : '' }}>Kannada</option>
+                            <option value="Punjabi" {{ request('language') == 'Punjabi' ? 'selected' : '' }}>Punjabi</option>
+                            <option value="Malayalam" {{ request('language') == 'Malayalam' ? 'selected' : '' }}>Malayalam</option>
+                            </select>
+                        </div>
+
                         <div class="me-2">
                             <label for="filter_date">{{ __('Filter by Date') }}</label>
                             <input type="date" name="filter_date" id="filter_date" class="form-control" value="{{ request()->get('filter_date') }}" onchange="this.form.submit()">
@@ -60,6 +73,7 @@
                                 <th>{{ __('User Name') }}</th>
                                 <th>{{ __('Call User Name') }}</th>
                                 <th>{{ __('Type') }}</th>
+                                <th>{{ __('Language') }}</th>
                                 <th>{{ __('Started Time') }}</th>
                                 <th>{{ __('Ended Time') }}</th>
                                 <th>{{ __('Call Duration') }}</th>
@@ -76,6 +90,7 @@
                                     <td>{{ ucfirst($usercall->user->name ?? '') }}</td>
                                     <td>{{ ucfirst($usercall->callusers->name ?? '') }}</td>
                                     <td>{{ ucfirst($usercall->type) }}</td>
+                                    <td>{{ ucfirst($usercall->user->language ?? '') }}</td>
                                     <td>{{ $usercall->started_time }}</td>
                                     <td>{{ $usercall->ended_time }}</td>
                                     <td>{{ $usercall->duration }}</td>

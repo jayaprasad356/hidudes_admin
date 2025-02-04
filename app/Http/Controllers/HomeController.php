@@ -23,6 +23,7 @@ use App\Models\Admin;
 use App\Models\Transactions;
 use App\Models\Utility;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
@@ -40,29 +41,66 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
-    {
+   
+     public function index(Request $request)
+     {
+         $language = $request->input('language', 'all'); // Default to 'all' if no language selected
+         $today = date('Y-m-d');
+         $yesterday = date('Y-m-d', strtotime('-1 day'));
+     
+         // Start the query to fetch users
+         $query = Users::query();
+     
+         // Apply language filter if not 'all'
+         if ($language !== 'all') {
+             $query->where('language', $language); 
+         }
+     
+         // Retrieve user IDs for other queries after language filter is applied
+         $user_ids = $query->pluck('id');
+     
+         // Count the total users for the selected language
+         $users_count = $query->count();
+     
+         // Count male users based on language and date
+         $male_users_count = (clone $query)->where('gender', 'male')->whereDate('created_at', $today)->count();
+     
+         // Count female users based on language and date
+         $female_users_count = (clone $query)->where('gender', 'female')->whereDate('created_at', $today)->count();
+     
+         // Count users registered today for the selected language
+         $today_registration_count = (clone $query)->whereDate('created_at', $today)->count();
+     
+         // Count active audio users based on language
+         $active_audio_users_count = (clone $query)->where('audio_status', 1)->count();
+     
+         // Count active video users based on language
+         $active_video_users_count = (clone $query)->where('video_status', 1)->count();
+     
+         // Recharge and withdrawal data for selected language users
+         $today_recharge_count = Transactions::where('type', 'add_coins')->whereDate('datetime', $today)->whereIn('user_id', $user_ids)->sum('amount');
+         $pending_withdrawals = Withdrawals::where('status', 0)->whereIn('user_id', $user_ids)->sum('amount');
+         $yesterday_recharge_count = Transactions::where('type', 'add_coins')->whereDate('datetime', $yesterday)->whereIn('user_id', $user_ids)->sum('amount');
+         $yesterday_paid_withdrawals = Withdrawals::where('status', 1)->whereDate('datetime', $yesterday)->whereIn('user_id', $user_ids)->sum('amount');
+         $today_not_connected_calls = UserCalls::whereNull('ended_time')->whereDate('datetime', $today)->whereIn('user_id', $user_ids)->count();
+     
+         return view('dashboard.dashboard', compact(
+             'users_count', 
+             'male_users_count', 
+             'female_users_count', 
+             'today_registration_count', 
+             'active_audio_users_count', 
+             'active_video_users_count', 
+             'today_recharge_count', 
+             'pending_withdrawals', 
+             'yesterday_recharge_count', 
+             'yesterday_paid_withdrawals', 
+             'today_not_connected_calls'
+         ));
+     }
+     
 
-        $avatar_count = Avatars::count();
-        $users_count = Users::count();
-        $today = date('Y-m-d');
-        $yesterday = date('Y-m-d', strtotime('-1 day'));
-
-        $male_users_count = Users::where('gender', 'male')->whereDate('created_at', $today)->count();
-        $female_users_count = Users::where('gender', 'female')->whereDate('created_at', $today)->count();
-        $active_audio_users_count = Users::where('audio_status', 1)->count();
-        $active_video_users_count = Users::where('video_status', 1)->count();
-        $today_recharge_count = Transactions::where('type', 'add_coins')->whereDate('datetime', $today)->sum('amount');
-        $pending_withdrawals = Withdrawals::where('status', 0)->sum('amount');
-        $yesterday_recharge_count = Transactions::where('type', 'add_coins')->whereDate('datetime', $yesterday)->sum('amount');
-        $yesterday_paid_withdrawals = Withdrawals::where('status', 1)->whereDate('datetime', $yesterday)->sum('amount');
-        $today_registration_count = Users::whereDate('created_at', $today)->count();
-        $today_not_connected_calls = UserCalls::whereNull('ended_time')->whereDate('datetime', $today)->count();
-             
-                return view('dashboard.dashboard', compact('avatar_count','users_count','male_users_count','female_users_count','active_audio_users_count','active_video_users_count','today_recharge_count','pending_withdrawals','today_registration_count','yesterday_recharge_count','yesterday_paid_withdrawals','today_not_connected_calls'));
-            }
-       
-    }
+}
 
     
 
