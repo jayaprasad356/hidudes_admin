@@ -1711,6 +1711,21 @@ public function update_connected_call(Request $request)
         ], 200);
     }
 
+          // Check if the call already exists with the same details
+          $existingCall = UserCalls::where('user_id', $user_id)
+          ->where('id', $call_id)
+          ->where('started_time', $started_time)
+          ->where('ended_time', $ended_time)
+          ->first();
+    
+            if ($existingCall) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Call already exists with the same details.',
+                ], 200);
+            }
+    
+
     // Convert the times to Carbon instances with today's date
     $currentDate = Carbon::now()->format('Y-m-d'); 
     $startTime = Carbon::createFromFormat('Y-m-d H:i:s', "$currentDate $started_time");
@@ -1748,10 +1763,10 @@ public function update_connected_call(Request $request)
     // Determine coin deduction rates
     if ($callType == 'audio') {
         $coinsPerMinute = 10; // Per minute deduction
-        $incomePerMinute = 2; // Income per minute
+        $incomePerMinute = 1; // Income per minute
     } elseif ($callType == 'video') {
         $coinsPerMinute = 60;
-        $incomePerMinute = 10;
+        $incomePerMinute = 6;
     }
 
     // Calculate total coins spent and earned
@@ -1909,6 +1924,21 @@ public function individual_update_connected_call(Request $request)
         ], 200);
     }
 
+          // Check if the call already exists with the same details
+          $existingCall = UserCalls::where('user_id', $user_id)
+          ->where('id', $call_id)
+          ->where('started_time', $started_time)
+          ->where('ended_time', $ended_time)
+          ->first();
+    
+            if ($existingCall) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Call already exists with the same details.',
+                ], 200);
+            }
+    
+
     $user = users::find($user_id);
 
     // Convert the times to Carbon instances with today's date
@@ -1961,10 +1991,10 @@ $callUser = Users::find($call->call_user_id);
 // Determine coin deduction rates
 if ($callType == 'audio') {
     $coinsPerMinute = 10; // Per minute deduction
-    $incomePerMinute = 2; // Income per minute
+    $incomePerMinute = 1; // Income per minute
 } elseif ($callType == 'video') {
     $coinsPerMinute = 60;
-    $incomePerMinute = 10;
+    $incomePerMinute = 6;
 }
 
 // Calculate total coins spent and earned
