@@ -1712,12 +1712,11 @@ public function update_connected_call(Request $request)
     }
 
           // Check if the call already exists with the same details
-          $existingCall = UserCalls::where('user_id', $user_id)
-          ->where('id', $call_id)
-          ->where('started_time', $started_time)
-          ->where('ended_time', $ended_time)
-          ->first();
-    
+        $existingCall = UserCalls::where('user_id', $user_id)
+            ->where('call_user_id', $call->call_user_id)
+            ->where('started_time', $started_time)
+            ->where('ended_time', $ended_time)
+            ->first();
             if ($existingCall) {
                 return response()->json([
                     'success' => false,
@@ -1924,12 +1923,11 @@ public function individual_update_connected_call(Request $request)
         ], 200);
     }
 
-          // Check if the call already exists with the same details
-          $existingCall = UserCalls::where('user_id', $user_id)
-          ->where('id', $call_id)
-          ->where('started_time', $started_time)
-          ->where('ended_time', $ended_time)
-          ->first();
+    $existingCall = UserCalls::where('user_id', $user_id)
+    ->where('call_user_id', $call->call_user_id)
+    ->where('started_time', $started_time)
+    ->where('ended_time', $ended_time)
+    ->first();
     
             if ($existingCall) {
                 return response()->json([

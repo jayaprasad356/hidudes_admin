@@ -299,6 +299,7 @@ Route::group(['middleware' => ['verified']], function () {
     Route::get('/ratings', [RatingsController::class, 'index'])->name('ratings.index');
     Route::get('/usercalls', [UserCallsController::class, 'index'])->name('usercalls.index');
     Route::patch('/withdrawals/bulk-update-status', [WithdrawalsController::class, 'bulkUpdateStatus'])->name('withdrawals.bulkUpdateStatus');
+    Route::patch('/withdrawals/bulk-update', [WithdrawalsController::class, 'bulkUpdateStatus'])->name('withdrawals.bulkUpdateStatus');
     Route::patch('/withdrawals/bulk-cancel', [WithdrawalsController::class, 'bulkCancelStatus'])->name('withdrawals.bulkCancelStatus');
     Route::get('withdrawals/export', [WithdrawalsController::class, 'export'])->name('withdrawals.export');
     Route::resource('coins', CoinsController::class);

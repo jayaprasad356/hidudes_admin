@@ -54,13 +54,13 @@
 
 
                         <!-- Paid Button -->
-                        <button type="submit" name="status" value="1" class="btn btn-success ml-3" 
+                        <button type="submit" name="new_status" value="1" class="btn btn-success ml-3"
                             onclick="return confirm('{{ __('Are you sure you want to mark selected as Paid?') }}')">
                             {{ __('Paid') }}
                         </button>
 
                         <!-- Cancel Button -->
-                        <button type="submit" name="status" value="2" class="btn btn-danger ml-2" 
+                        <button type="submit" name="new_status" value="2" class="btn btn-danger ml-2"
                             onclick="return confirm('{{ __('Are you sure you want to cancel selected withdrawals?') }}')">
                             {{ __('Cancel') }}
                         </button>

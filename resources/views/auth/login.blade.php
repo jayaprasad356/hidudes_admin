@@ -8,7 +8,7 @@
     <div class="card-body">
         <!-- Logo Section -->
         <div class="text-center mb-4">
-            <img src="{{ asset('storage/uploads/logo/hi_dude.png') }}" alt="Logo" width="100">
+            <img src="{{ asset('storage/uploads/logo/hi_dudes.png') }}" alt="Logo" width="100">
         </div>
 
         <!-- Login Title -->
