@@ -22,7 +22,7 @@
     <div class="m-header main-logo">
         <a href="{{ route('dashboard') }}" class="b-brand">
             <!-- ========   change your logo hear   ============ -->
-            <img src="{{ asset('storage/uploads/logo/hi_dudes.png') }}" alt="Logo"
+            <img src="{{ asset('storage/uploads/logo/hidude.png') }}" alt="Logo"
                 alt="{{ config('app.name', 'HRMGo') }}" class="logo logo-lg" style="height: 50px;">
         </a>
     </div>
