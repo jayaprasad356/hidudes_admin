@@ -38,20 +38,20 @@ if (empty($_POST['phone'])) {
 }
 
 // Assign POST data to variables
-$reference_id = $_POST['reference_id'] .'-'. time();
+$reference_id = $_POST['reference_id'].'-HD-'. time();
 $buyer_name = $_POST['buyer_name'];
 $amount = $_POST['amount'];
 $email = $_POST['email'];
 $phone = $_POST['phone'];
 
-$api_key = "YOUR_API_KEY_ID";
-$api_secret = "YOUR_API_KEY_SECRET";
+$api_key = "rzp_live_2TdaIR0uLtc4he";
+$api_secret = "s8APXMnBPEgifDn5ERPPCNUx";
 $amount = $amount * 100; // Convert amount to paise
 $url = "https://api.razorpay.com/v1/payment_links";
 $expire_by = (time() + 20) * 1000;
 
 $data = [
-    "upi_link" => true,
+    "upi_link" => 'false',
     "amount" => $amount,  // Amount in paise (₹100.00)
     "currency" => "INR",
     "accept_partial" => false,
@@ -71,7 +71,7 @@ $data = [
     "notes" => [
         "policy_name" => "Jeevan Bima"
     ],
-    "callback_url" => "https://example-callback-url.com/",
+    "callback_url" => "https://hidude.in/success.php",
     "callback_method" => "get"
 ];
 
