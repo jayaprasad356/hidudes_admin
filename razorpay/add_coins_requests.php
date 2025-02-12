@@ -64,8 +64,8 @@ $data = [
         "email" => $email
     ],
     "notify" => [
-        "sms" => true,
-        "email" => true
+        "sms" => false,
+        "email" => false
     ],
     "reminder_enable" => true,
     "notes" => [
