@@ -44,8 +44,11 @@ $amount = $_POST['amount'];
 $email = $_POST['email'];
 $phone = $_POST['phone'];
 
-$api_key = "rzp_live_2TdaIR0uLtc4he";
-$api_secret = "s8APXMnBPEgifDn5ERPPCNUx";
+// $api_key = "rzp_live_2TdaIR0uLtc4he";
+// $api_secret = "s8APXMnBPEgifDn5ERPPCNUx";
+
+$api_key = "rzp_live_3zt6jpOxJUSrfO";
+$api_secret = "EzSEfmmqD6MRKbPFftZUO97Q";
 $amount = $amount * 100; // Convert amount to paise
 $url = "https://api.razorpay.com/v1/payment_links";
 $expire_by = (time() + 20) * 1000;
@@ -57,7 +60,7 @@ $data = [
     "accept_partial" => false,
     "expire_by" => $expire_by,
     "reference_id" => $reference_id,
-    "description" => "Purchase Product",
+    "description" => "-",
     "customer" => [
         "name" => $buyer_name,
         "contact" => $phone,
@@ -69,7 +72,7 @@ $data = [
     ],
     "reminder_enable" => true,
     "notes" => [
-        "policy_name" => "Jeevan Bima"
+        "policy_name" => "-"
     ],
     "callback_url" => "https://hidude.in/success.php",
     "callback_method" => "get"
