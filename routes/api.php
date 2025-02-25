@@ -27,7 +27,7 @@ use App\Http\Controllers\AuthControllerApi;
  Route::post('calls_list', [AuthController::class, 'calls_list']);
  Route::post('call_female_user', [AuthController::class, 'call_female_user']);
  Route::post('female_call_attend', [AuthController::class, 'female_call_attend']);
-
+ Route::post('createUpigateway', [AuthController::class, 'createUpigateway']);
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
