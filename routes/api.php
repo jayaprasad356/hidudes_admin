@@ -73,4 +73,5 @@ Route::group([
     Route::post('explaination_video_list', [AuthController::class, 'explaination_video_list']);
     Route::get('cron_jobs', [AuthController::class, 'cron_jobs']);
     Route::post('gifts_list', [AuthController::class, 'gifts_list']);
+    Route::post('createUpigateway', [AuthController::class, 'createUpigateway']);
 });

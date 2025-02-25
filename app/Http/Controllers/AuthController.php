@@ -348,6 +348,71 @@ class AuthController extends Controller
         ],
     ], 200);
 }
+
+    public function createUpigateway(Request $request)
+    {
+    
+        $user_id = $request->input('user_id');
+        $client_txn_id = $request->input('client_txn_id');
+        $amount = $request->input('amount');
+
+        if (empty($user_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'user_id is empty.',
+            ], 200);
+        }
+
+        $user = Users::find($user_id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'user not found.',
+            ], 200);
+        }
+
+        if (empty($client_txn_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'client_txn_id is empty.',
+            ], 200);
+        }
+
+        if (empty($amount)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'amount is empty.',
+            ], 200);
+        }
+
+        // Set API URL
+        $apiUrl = "https://api.ekqr.in/api/create_order";
+
+
+        // Prepare request payload with default values
+        $payload = [
+            "key" => "698eca21-ee54-42ff-b226-1a969ab4c344",
+            "client_txn_id" =>$client_txn_id.'-HM',
+            "amount" => $amount,
+            "p_info" => "Hidude",
+            "customer_name" => $user->name,
+            "customer_email" => 'himaapp123@gmail.com',
+            "customer_mobile" => $user->mobile,
+            "redirect_url" => "https://hidude.in/success.php",
+            "udf1" => "user defined field 1 (max 25 char)",
+            "udf2" => "user defined field 2 (max 25 char)",
+            "udf3" => "user defined field 3 (max 25 char)"
+        ];
+
+        // Make POST request to the external API
+            $response = Http::post($apiUrl, $payload);
+
+            // Return only the response data
+            return $response->json();
+
+        
+    }
     public function userdetails(Request $request)
     {
         $authenticatedUser = auth('api')->user(); // Retrieve the authenticated user
