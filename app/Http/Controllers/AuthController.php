@@ -393,7 +393,7 @@ class AuthController extends Controller
         // Prepare request payload with default values
         $payload = [
             "key" => "698eca21-ee54-42ff-b226-1a969ab4c344",
-            "client_txn_id" =>$client_txn_id.'-HM',
+            "client_txn_id" =>$client_txn_id.'-HD',
             "amount" => $amount,
             "p_info" => "Hidude",
             "customer_name" => $user->name,
