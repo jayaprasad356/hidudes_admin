@@ -72,6 +72,11 @@ Route::group([
     Route::post('get_remaining_time', [AuthController::class, 'get_remaining_time']);
     Route::post('explaination_video_list', [AuthController::class, 'explaination_video_list']);
     Route::get('cron_jobs', [AuthController::class, 'cron_jobs']);
+    Route::post('try_coins', [AuthController::class, 'try_coins']);
     Route::post('gifts_list', [AuthController::class, 'gifts_list']);
     Route::post('createUpigateway', [AuthController::class, 'createUpigateway']);
+    Route::post('update_image', [AuthController::class, 'update_image']);
+    Route::post('send_fcm_token', [AuthController::class, 'send_fcm_token']);
+    Route::post('/send-fcm-notification', [AuthController::class, 'sendNotification']);
+         Route::post('user_avatar_image', [AuthController::class, 'user_avatar_image']);
 });

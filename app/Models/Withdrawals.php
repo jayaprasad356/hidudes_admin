@@ -25,5 +25,9 @@ class Withdrawals extends Model
 {
     return $this->hasOne(Upis::class, 'user_id', 'user_id');
 }
+public function bankDetails()
+{
+    return $this->hasOne(WithdrawalBankDetail::class, 'withdrawal_id');
+}
 
 }

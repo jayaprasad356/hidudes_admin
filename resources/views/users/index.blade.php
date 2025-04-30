@@ -14,9 +14,9 @@
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
-            <form action="{{ route('users.index') }}" method="GET" class="mb-3">
-            <div class="row align-items-end">
-            <div class="col-md-3">
+                <form action="{{ route('users.index') }}" method="GET" class="mb-3">
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
                             <label for="gender">{{ __('Filter by Gender') }}</label>
                             <select name="gender" id="gender" class="form-control gender-filter" onchange="this.form.submit()">
                                 <option value="">{{ __('All') }}</option>
@@ -24,16 +24,21 @@
                                 <option value="female" {{ request()->get('gender') == 'female' ? 'selected' : '' }}>{{ __('Female') }}</option>
                             </select>
                         </div>
-                <div class="col-md-3">
+                        <div class="col-md-3">
                             <label for="filter_date">{{ __('Filter by Date') }}</label>
                             <input type="date" name="filter_date" id="filter_date" class="form-control" value="{{ request()->get('filter_date') }}" onchange="this.form.submit()">
-                 </div>
-                 </div>
-        </form>
+                        </div>
+                        <div class="col-md-3 ms-auto">
+                            <label for="search">{{ __('Search Users') }}</label>
+                            <input type="text" name="search" id="search" class="form-control"
+                             value="{{ request()->get('search') }}" placeholder="Enter Name, Mobile">
+                        </div>
+                    </div>
+                </form>
             </div>
             <div class="card-body table-border-style">
                 <div class="table-responsive">
-                    <table class="table" id="pc-dt-simple">
+                    <table class="table">
                         <thead>
                             <tr>
                             <th>{{ __('Actions') }}</th>
@@ -50,10 +55,12 @@
                                 <th>{{ __('Status') }}</th>
                                 <th>{{ __('Audio Status') }}</th>
                                 <th>{{ __('Video Status') }}</th>
+                                <th>{{ __('Profile Status') }}</th>
                                 <th>{{ __('Attended Calls') }}</th>
                                 <th>{{ __('Missed Calls') }}</th>
                                 <th>{{ __('Avg Call Percentage') }}</th>
                                 <th>{{ __('Blocked') }}</th>
+                                <th>{{ __('Last Seen') }}</th>
                                 <th>{{ __('Avatar') }}</th>
                             </tr>
                         </thead>
@@ -117,6 +124,18 @@
                                             <i class="fa fa-video-slash text-danger"></i> <span class="font-weight-bold">{{ __('Disabled') }}</span>
                                         @endif
                                     </td>
+                                     <td>
+                                        <!-- Display Status with values 1, 2, and 3 -->
+                                        @if($user->profile_status == 0)
+                                            <i class="fa fa-clock text-warning"></i> <span class="font-weight-bold">{{ __('Pending') }}</span>
+                                        @elseif($user->profile_status == 2)
+                                            <i class="fa fa-check-circle text-success"></i> <span class="font-weight-bold">{{ __('Verified') }}</span>
+                                        @elseif($user->profile_status == 3)
+                                            <i class="fa fa-times-circle text-danger"></i> <span class="font-weight-bold">{{ __('Cancelled') }}</span>
+                                        @else
+                                            <i class="fa fa-question-circle text-secondary"></i> <span class="font-weight-bold">{{ __('Unknown') }}</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $user->attended_calls }}</td>
                                     <td>{{ $user->missed_calls }}</td>
                                     <td>{{ $user->avg_call_percentage }}</td>
@@ -128,18 +147,28 @@
                                             <i class="fa fa-check text-success"></i> <span class="font-weight-bold">{{ __('Not Blocked') }}</span>
                                         @endif
                                     </td>
+                                    <td>{{ $user->last_seen }}</td>
                                     <!-- Avatar Image -->
-                                    <td>
-                                        @if($user->avatar && $user->avatar->image)
-                                        <a href="{{ asset('storage/app/public/' . $user->avatar->image) }}" data-lightbox="image-{{ $user->avatar->id }}">
+                                   <td>
+                                        @if($user->profile_status == 2 && $user->image)
+                                            <!-- Display User Image if profile_status is 2 and image is available -->
+                                            <a href="{{ asset('storage/app/public/' . $user->image) }}" data-lightbox="image-{{ $user->id }}">
+                                                <img class="user-img img-thumbnail img-fluid" 
+                                                    src="{{ asset('storage/app/public/' . $user->image) }}" 
+                                                    alt="User Image" 
+                                                    style="max-width: 100px; max-height: 100px;">
+                                            </a>
+                                        @elseif($user->avatar && $user->avatar->image)
+                                            <!-- Display Avatar if user image is not available -->
+                                            <a href="{{ asset('storage/app/public/' . $user->avatar->image) }}" data-lightbox="avatar-{{ $user->avatar->id }}">
                                                 <img class="user-img img-thumbnail img-fluid" 
                                                     src="{{ asset('storage/app/public/' . $user->avatar->image) }}" 
                                                     alt="Avatar Image" 
                                                     style="max-width: 100px; max-height: 100px;">
                                             </a>
-
                                         @else
-                                            {{ __('No Avatar') }}
+                                            <!-- Display 'No Image' text if neither is available -->
+                                            {{ __('No Image') }}
                                         @endif
                                     </td>
                                     <!-- Actions -->
@@ -147,6 +176,21 @@
                             @endforeach
                         </tbody>
                     </table>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <p class="mb-0">
+                                Showing 
+                                <strong>{{ $users->firstItem() }}</strong> 
+                                to 
+                                <strong>{{ $users->lastItem() }}</strong> 
+                                of 
+                                <strong>{{ $users->total() }}</strong> users
+                            </p>
+                        </div>
+                        <div>
+                            {{ $users->appends(request()->query())->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

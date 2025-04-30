@@ -77,12 +77,42 @@ class HomeController extends Controller
          // Count active video users based on language
          $active_video_users_count = (clone $query)->where('video_status', 1)->count();
      
-         // Recharge and withdrawal data for selected language users
-         $today_recharge_count = Transactions::where('type', 'add_coins')->whereDate('datetime', $today)->whereIn('user_id', $user_ids)->sum('amount');
-         $pending_withdrawals = Withdrawals::where('status', 0)->whereIn('user_id', $user_ids)->sum('amount');
-         $yesterday_recharge_count = Transactions::where('type', 'add_coins')->whereDate('datetime', $yesterday)->whereIn('user_id', $user_ids)->sum('amount');
-         $yesterday_paid_withdrawals = Withdrawals::where('status', 1)->whereDate('datetime', $yesterday)->whereIn('user_id', $user_ids)->sum('amount');
-         $today_not_connected_calls = UserCalls::whereNull('ended_time')->whereDate('datetime', $today)->whereIn('user_id', $user_ids)->count();
+          // Recharge and withdrawal data
+        $today_recharge_count = Transactions::where('type', 'add_coins')
+            ->whereDate('datetime', $today)
+            ->when($language !== 'all', fn($q) => $q->whereIn('user_id', $user_ids))
+            ->sum('amount');
+            
+            
+            $today_recharge_user_count = Transactions::where('type', 'add_coins')
+            ->whereDate('datetime', $today)
+            ->whereNotNull('amount') // Ensure amount is not null
+            ->where('amount', '>', 0) // Ensure amount is greater than 0
+            ->when($language !== 'all', fn($q) => $q->whereIn('user_id', $user_ids))
+            ->distinct('user_id')
+            ->count('user_id');
+
+
+    
+        $pending_withdrawals = Withdrawals::where('status', 0)
+            ->when($language !== 'all', fn($q) => $q->whereIn('user_id', $user_ids))
+            ->sum('amount');
+    
+        // ✅ Fixed part: Show yesterday recharge amount for all languages when 'all' is selected
+        $yesterday_recharge_count = Transactions::where('type', 'add_coins')
+            ->whereDate('datetime', $yesterday)
+            ->when($language !== 'all', fn($q) => $q->whereIn('user_id', $user_ids))
+            ->sum('amount');
+    
+        $yesterday_paid_withdrawals = Withdrawals::where('status', 1)
+            ->whereDate('datetime', $yesterday)
+            ->when($language !== 'all', fn($q) => $q->whereIn('user_id', $user_ids))
+            ->sum('amount');
+    
+        $today_not_connected_calls = UserCalls::whereNull('ended_time')
+            ->whereDate('datetime', $today)
+            ->when($language !== 'all', fn($q) => $q->whereIn('user_id', $user_ids))
+            ->count();
      
          return view('dashboard.dashboard', compact(
              'users_count', 
@@ -91,6 +121,7 @@ class HomeController extends Controller
              'today_registration_count', 
              'active_audio_users_count', 
              'active_video_users_count', 
+             'today_recharge_user_count',
              'today_recharge_count', 
              'pending_withdrawals', 
              'yesterday_recharge_count', 

@@ -10,36 +10,61 @@ class UserCallsController extends Controller
 {
     public function index(Request $request)
     {
-        // Fetch user calls with optional type filter
-        $type = $request->get('type'); // Get type from request
-        $filterDate = $request->get('filter_date');
+        $search = $request->get('search');
+        $filterDate = $request->get('filter_date');  // Only apply if provided
+        $type = $request->get('type'); 
+        $language = $request->get('language'); 
         
-        // Get the user calls with the relationships
+        // Get the user calls with relationships
         $usercalls = UserCalls::with(['user', 'callusers'])
-        ->when($filterDate, function ($query) use ($filterDate) {
-            return $query->whereDate('datetime', $filterDate); // Make sure column name matches
-        })
-            ->when($type, function ($query, $type) {
-                return $query->where('type', $type); // Filter by type if provided
+            ->when($filterDate, function ($query, $filterDate) {  // Only apply date filter if provided
+                return $query->whereDate('datetime', Carbon::parse($filterDate)->format('Y-m-d'));
             })
-            ->orderBy('datetime', 'desc') // Order by latest data
-            ->get();
+            ->when($type, function ($query, $type) {
+                return $query->where('type', $type);
+            })
+            ->when($language, function ($query, $language) {
+                if (!empty($language) && $language !== 'all') {
+                    return $query->whereHas('user', function ($query) use ($language) {
+                        return $query->where('language', $language);
+                    });
+                }
+            })
+           ->when($search, function ($query, $search) {
+                return $query->where(function ($query) use ($search) {
+                    $query->whereHas('user', function ($query) use ($search) {
+                        $query->where('name', 'like', '%' . $search . '%')
+                              ->orWhere('mobile', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('callusers', function ($query) use ($search) {
+                        $query->where('name', 'like', '%' . $search . '%')
+                              ->orWhere('mobile', 'like', '%' . $search . '%');
+                    });
+                });            })
 
-        // Calculate the duration for each user call
-        foreach ($usercalls as $usercall) {
-            if ($usercall->started_time && $usercall->ended_time) {
-                // Parse the times using Carbon
-                $started = Carbon::parse($usercall->started_time);
-                $ended = Carbon::parse($usercall->ended_time);
-                
-                // Calculate the duration difference
-                $duration = $started->diff($ended); // Get the difference as a Carbon interval
-                // Format the duration as H:i:s
-                $usercall->duration = $duration->format('%H:%I:%S');
-            } else {
-                $usercall->duration = ''; // Handle cases where times are missing
-            }
-        
+            ->orderBy('datetime', 'desc')
+            ->paginate(10);
+    
+
+            foreach ($usercalls as $usercall) {
+                if ($usercall->started_time && $usercall->ended_time) {
+                    // Parse the times using Carbon
+                    $started = Carbon::parse($usercall->started_time);
+                    $ended = Carbon::parse($usercall->ended_time);
+            
+                    // Handle case when call crosses midnight
+                    if ($ended->lessThan($started)) {
+                        $ended->addDay();
+                    }
+            
+                    // Calculate the duration
+                    $duration = $started->diff($ended);
+            
+                    // Format the duration as H:i:s
+                    $usercall->duration = $duration->format('%H:%I:%S');
+                } else {
+                    $usercall->duration = ''; // Handle cases where times are missing
+                }
           // Get the user's current coins (without before and after calculations)
           $user = $usercall->user;
           if ($user) {

@@ -48,6 +48,7 @@
                                     <th>{{ __('Amount') }}</th>
                                     <th>{{ __('Payment Type') }}</th>
                                     <th>{{ __('Datetime') }}</th>
+                                    <th>{{ __('Download') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -61,6 +62,13 @@
                                         <td>{{ $transaction->amount }}</td>
                                         <td>{{ $transaction->payment_type }}</td>
                                         <td>{{ $transaction->datetime }}</td>
+                                        <td>
+                                            @if ($transaction->type == 'add_coins')
+                                                <a href="{{ route('transactions.download', $transaction->id) }}" class="btn btn-primary btn-sm">
+                                                    {{ __('Download Invoice') }}
+                                                </a>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>

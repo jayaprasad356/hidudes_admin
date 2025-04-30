@@ -20,6 +20,8 @@
         "guzzlehttp/guzzle": "*",
         "iyzico/iyzipay-php": "^2.0",
         "kkomelin/laravel-translatable-string-exporter": "^1.21",
+        "kreait/firebase-php": "^7.10",
+        "kreait/laravel-firebase": "^5.8",
         "lab404/laravel-impersonate": "^1.7",
         "lahirulhr/laravel-payhere": "^0.2.1",
         "laravel/framework": "^10.10",
@@ -69,6 +71,7 @@
             "Modules\\": "Modules/"
         }
     },
+   
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/"

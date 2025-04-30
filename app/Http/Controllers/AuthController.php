@@ -9,16 +9,22 @@ use App\Models\Users;
 use App\Models\Upis;
 use App\Models\Avatars;
 use App\Models\Coins;
+use App\Models\Orders;
 use App\Models\SpeechText;  
 use App\Models\Appsettings; 
 use App\Models\Ratings; 
 use App\Models\Gifts;
+use App\Models\random_female_connecteds;
 use App\Models\Transactions;
 use App\Models\DeletedUsers; 
+use App\Models\fcm_tokens;
 use App\Models\Withdrawals;  
 use App\Models\UserCalls;
 use App\Models\explaination_video;
 use App\Models\explaination_video_links;
+use App\Models\ScreenNotifications;
+use App\Models\PersonalNotifications;
+use App\Services\FirebaseService;
 use Carbon\Carbon;
 use App\Models\News; 
 use Validator;
@@ -28,12 +34,18 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\ServiceAccount;
+use Berkayk\OneSignal\OneSignalFacade as OneSignal;
 
 
 class AuthController extends Controller
 {
-    public function __construct(){
-        $this->middleware('auth:api', ['except' => ['login','register','send_otp','avatar_list','speech_text','settings_list','appsettings_list','add_coins','cron_jobs','cron_updates','explaination_video_list','gifts_list','createUpigateway']]);
+    protected $firebaseService;
+
+    public function __construct(FirebaseService $firebaseService)
+    {
+        $this->firebaseService = $firebaseService;
+
+        $this->middleware('auth:api', ['except' => ['login','register','send_otp','avatar_list','speech_text','settings_list','appsettings_list','add_coins','cron_jobs','cron_updates','explaination_video_list','gifts_list','createUpigateway','try_coins']]);
     }
  
     public function register(Request $request)
@@ -90,15 +102,17 @@ class AuthController extends Controller
                 ], 200);
             }
         }
-    
-        // Generate random name for female users if not provided
-        if (strtolower($gender) === 'female' && empty($name)) {
-            $name = $this->generateRandomFemaleName();
-        } elseif (empty($name)) {
-            // Fallback for male users or unspecified gender
-            $name = $this->generateRandomName();
-        }
-    
+
+           // Generate random name for female users if not provided
+               if (strtolower($gender) === 'female' && empty($name)) {
+                $name = $this->generateRandomFemaleName($language);
+            } elseif (empty($name)) {
+                // Fallback for male users or unspecified gender
+                $name = $this->generateRandomName();
+            }
+            
+              $freeCoins = DB::table('news')->value('free_coins');
+            
         // Create the new user
         $users = new Users();
         $users->name = $name;
@@ -110,24 +124,31 @@ class AuthController extends Controller
         $users->interests = $interests;
         $users->describe_yourself = $describe_yourself;
         $users->datetime = Carbon::now();
-        // $users->coins = 50; // Add default coins
-        // $users->total_coins = 50; // Add default total coins
+        $users->coins = $freeCoins; // Add default coins
+        $users->total_coins = $freeCoins; // Add default total coins
     
         $users->save();
     
         // Prepare the user details to return
         $avatar = Avatars::find($users->avatar_id);
-        $imageUrl = ($avatar && $avatar->image) ? asset('storage/app/public/' . $avatar->image) : '';
+          $imageUrl = ($users && $users->image) 
+            ? asset('storage/app/public/' . $users->image) 
+            : ($avatar && $avatar->image 
+                ? asset('storage/app/public/' . $avatar->image) 
+                : '');
         $voicePath = $users && $users->voice ? asset('storage/app/public/voices/' . $users->voice) : '';
     
-        // Attempt to log the user in using the mobile number (no need for password)
-        $credentials = ['mobile' => $mobile];
-        config(['jwt.ttl' => 60 * 24 * 90]); // 90 days in minutes
-
-        // Attempt authentication
-        if (! $token = auth('api')->attempt($credentials)) {
+          // Find user manually
+        $user = Users::where('mobile', $mobile)->first();
+        
+        if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+        
+        // Generate JWT token manually
+        config(['jwt.ttl' => 60 * 24 * 90]); // 90 days in minutes
+        $token = auth('api')->login($user);
+
         // Return the response
         $userDetails = [
             'id' => $users->id,
@@ -158,11 +179,11 @@ class AuthController extends Controller
             'data' => $userDetails,
         ], 200);
     }
-    private function generateRandomFemaleName(){
-        // Fetch a random name from female_users table
-        $randomFemaleName = DB::table('female_users')->inRandomOrder()->value('name');
+  private function generateRandomFemaleName($language){
+        // Fetch a random name from female_users table based on language
+        $randomFemaleName = DB::table('female_users')->where('language', $language)->inRandomOrder()->value('name');
         if (!$randomFemaleName) {
-            $randomFemaleName = 'users'; // Default name if table is empty
+            $randomFemaleName = 'user'; // Default name if table is empty
         }
 
         // Append random 3 digits
@@ -199,17 +220,23 @@ class AuthController extends Controller
             return response()->json($response, 200);
         }
 
-        config(['jwt.ttl' => 60 * 24 * 90]); // 30 days in minutes
+        config(['jwt.ttl' => 60 * 24 * 90]); // Token valid for 90 days
+    
+        // **Manually log in user without password**
+        $token = auth('api')->login($users);
 
-        // Attempt authentication
-        if (! $token = auth('api')->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-        
+    if (!$token) {
+        return response()->json(['error' => 'Could not generate token'], 401);
+    }
+    
         $avatar = Avatars::find($users->avatar_id);
         $gender = $avatar ? $avatar->gender : '';
 
-        $imageUrl = ($avatar && $avatar->image) ? asset('storage/app/public/' . $avatar->image) : '';
+          $imageUrl = ($users && $users->image) 
+            ? asset('storage/app/public/' . $users->image) 
+            : ($avatar && $avatar->image 
+                ? asset('storage/app/public/' . $avatar->image) 
+                : '');
         $voicePath = $users && $users->voice ? asset('storage/app/public/voices/' . $users->voice) : '';
 
         return response()->json([
@@ -445,7 +472,11 @@ class AuthController extends Controller
         $avatar = Avatars::find($user->avatar_id);
         $gender = $avatar ? $avatar->gender : '';
 
-        $imageUrl = ($avatar && $avatar->image) ? asset('storage/app/public/' . $avatar->image) : '';
+          $imageUrl = ($user && $user->image) 
+    ? asset('storage/app/public/' . $user->image) 
+    : ($avatar && $avatar->image 
+        ? asset('storage/app/public/' . $avatar->image) 
+        : '');
         $voicePath = $user && $user->voice ? asset('storage/app/public/voices/' . $user->voice) : '';
 
 
@@ -476,6 +507,7 @@ class AuthController extends Controller
                 'ifsc' => $user->ifsc ?? '',
                 'holder_name' => $user->holder_name ?? '',
                 'upi_id' => $user->upi_id ?? '',
+                'profile_status' => $user->profile_status ?? '',
                 'datetime' => Carbon::parse($user->datetime)->format('Y-m-d H:i:s'),
                 'updated_at' => Carbon::parse($user->updated_at)->format('Y-m-d H:i:s'),
                 'created_at' => Carbon::parse($user->created_at)->format('Y-m-d H:i:s'),
@@ -510,10 +542,11 @@ class AuthController extends Controller
         $offset = $request->input('offset', 0);  // Default offset to 0 if not provided
         $limit = $request->input('limit', 10);  // Default limit to 10 if not provided
     
-        $coins = Coins::orderBy('price', 'asc')
-                      ->skip($offset)
-                      ->take($limit)
-                      ->get(); 
+       $coins = Coins::orderBy('price', 'asc')
+              ->skip($offset)
+              ->take($limit)
+              ->get(); 
+
     
         if ($coins->isEmpty()) {
             return response()->json([
@@ -521,6 +554,8 @@ class AuthController extends Controller
                 'message' => 'No coins data available.',
             ], 200);
         }
+        
+        
     
         $coinsData = $coins->map(function ($coin) {
             return [
@@ -793,6 +828,8 @@ public function settings_list(Request $request)
             'support_mail' => $item->support_mail,
             'demo_video' => $item->demo_video,
             'minimum_withdrawals' => $item->minimum_withdrawals,
+            'terms_conditions' => $item->terms_conditions,
+            'refund_cancellation' => $item->refund_cancellation,
         ];
     }
 
@@ -845,52 +882,57 @@ public function delete_users(Request $request)
             'message' => 'Unauthorized. Please provide a valid token.',
         ], 401);
     }
-    $user_id = $request->input('user_id');
-    $delete_reason = $request->input('delete_reason');
-
-    if (empty($user_id)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'user_id is empty.',
-        ], 200);
-    }
-
-    if (empty($delete_reason)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'delete_reason is empty.',
-        ], 200);
-    }
-
-    // Find the user to delete
-    $user = users::find($user_id);
-    if (!$user) {
-        return response()->json([
-            'success' => false,
-            'message' => 'user not found.',
-        ], 200);
-    }
-
-    // Log user deletion in the DeletedUsers model
-    $deleteduser = new DeletedUsers();
-    $deleteduser->user_id = $user->id;
-    $deleteduser->name = $user->name;
-    $deleteduser->mobile = $user->mobile;
-    $deleteduser->language = $user->language;
-    $deleteduser->avatar_id = $user->avatar_id;
-    $deleteduser->coins = $user->coins;
-    $deleteduser->total_coins = $user->total_coins;
-    $deleteduser->datetime = Carbon::now();
-    $deleteduser->delete_reason = $delete_reason;
-    $deleteduser->save();
-
-    // Delete the user
-    $user->delete();
-
-    return response()->json([
-        'success' => true,
-        'message' => 'user deleted successfully.',
+    
+         return response()->json([
+        'success' => false,
+        'message' => 'please mail your mobile number and describe your issue',
     ], 200);
+    // $user_id = $request->input('user_id');
+    // $delete_reason = $request->input('delete_reason');
+
+    // if (empty($user_id)) {
+    //     return response()->json([
+    //         'success' => false,
+    //         'message' => 'user_id is empty.',
+    //     ], 200);
+    // }
+
+    // if (empty($delete_reason)) {
+    //     return response()->json([
+    //         'success' => false,
+    //         'message' => 'delete_reason is empty.',
+    //     ], 200);
+    // }
+
+    // // Find the user to delete
+    // $user = users::find($user_id);
+    // if (!$user) {
+    //     return response()->json([
+    //         'success' => false,
+    //         'message' => 'user not found.',
+    //     ], 200);
+    // }
+
+    // // Log user deletion in the DeletedUsers model
+    // $deleteduser = new DeletedUsers();
+    // $deleteduser->user_id = $user->id;
+    // $deleteduser->name = $user->name;
+    // $deleteduser->mobile = $user->mobile;
+    // $deleteduser->language = $user->language;
+    // $deleteduser->avatar_id = $user->avatar_id;
+    // $deleteduser->coins = $user->coins;
+    // $deleteduser->total_coins = $user->total_coins;
+    // $deleteduser->datetime = Carbon::now();
+    // $deleteduser->delete_reason = $delete_reason;
+    // $deleteduser->save();
+
+    // // Delete the user
+    // $user->delete();
+
+    // return response()->json([
+    //     'success' => true,
+    //     'message' => 'user deleted successfully.',
+    // ], 200);
 }
 
 public function user_validations(Request $request)
@@ -962,7 +1004,11 @@ public function user_validations(Request $request)
 
     $avatar = Avatars::find($user->avatar_id);
     $gender = $avatar ? $avatar->gender : '';
-    $imageUrl = $avatar && $avatar->image ? asset('storage/app/public/' . $avatar->image) : '';
+     $imageUrl = ($user && $user->image) 
+    ? asset('storage/app/public/' . $user->image) 
+    : ($avatar && $avatar->image 
+        ? asset('storage/app/public/' . $avatar->image) 
+        : '');
     $voicePath = $user && $user->voice ? asset('storage/app/public/voices/' . $user->voice) : '';
 
     return response()->json([
@@ -1043,7 +1089,11 @@ public function update_voice(Request $request)
 
     $avatar = Avatars::find($user->avatar_id);
     $gender = $avatar ? $avatar->gender : '';
-    $imageUrl = $avatar && $avatar->image ? asset('storage/app/public/' . $avatar->image) : '';
+      $imageUrl = ($user && $user->image) 
+    ? asset('storage/app/public/' . $user->image) 
+    : ($avatar && $avatar->image 
+        ? asset('storage/app/public/' . $avatar->image) 
+        : '');
     $voicePath = $user && $user->voice ? asset('storage/app/public/voices/' . $user->voice) : '';
 
     return response()->json([
@@ -1154,7 +1204,7 @@ public function female_users_list(Request $request)
         })
         ->count();
 
-    // Retrieve all female users matching language, ordered by avg_call_percentage
+// Retrieve all female users matching language, ordered by profile_status, image existence, and last_seen
     $Users = Users::where('gender', 'female')
         ->where('status', 2)
         ->where('language', $callerLanguage) // Match language
@@ -1162,9 +1212,12 @@ public function female_users_list(Request $request)
             $query->where('audio_status', 1)
                   ->orWhere('video_status', 1);
         })
-        ->orderBy('avg_call_percentage', 'desc')
+        ->orderByRaw('profile_status = 2 DESC') // Prioritize users with profile_status == 2
+        ->orderByRaw('image IS NOT NULL DESC') // Then prioritize users with an image
+        ->orderBy('last_seen', 'desc') // Finally, order by last_seen
         ->with('avatar') // Only eager load the avatar relationship if necessary
         ->get();
+
 
     if ($Users->isEmpty()) {
         return response()->json([
@@ -1177,7 +1230,14 @@ public function female_users_list(Request $request)
     foreach ($Users as $user) {
         $avatar = $user->avatar; // Use the avatar relationship to get the avatar
         $gender = $avatar ? $avatar->gender : '';
-        $imageUrl = $avatar && $avatar->image ? asset('storage/app/public/' . $avatar->image) : '';
+             $imageUrl = '';
+        if ($user->profile_status == 2 && $user->image) {
+            // Show user image if profile_status = 1 and the user has an image
+            $imageUrl = asset('storage/app/public/' . $user->image);
+        } elseif (($user->profile_status == 0 || $user->profile_status == 1 || $user->profile_status == 3) && $avatar && $avatar->image) {
+            // Show avatar only if profile_status = 0
+            $imageUrl = asset('storage/app/public/' . $avatar->image);
+        }
         $voicePath = $user->voice ? asset('storage/app/public/voices/' . $user->voice) : '';
 
         $usersData[] = [
@@ -1329,25 +1389,81 @@ public function calls_status_update(Request $request)
         ], 200);
     }   
 
-    // Update status and relevant timestamp
-    $currentTime = now();
+      $currentTime = now();
+
     if ($call_type === 'audio') {
         $user->audio_status = $status;
-        $user->last_audio_time_updated = $currentTime; // Update only audio timestamp
-    } elseif ($call_type === 'video') {
+        $user->last_audio_time_updated = $currentTime;
+    } else {
         $user->video_status = $status;
-        $user->last_video_time_updated = $currentTime; // Update only video timestamp
+        $user->last_video_time_updated = $currentTime;
     }
-
+    
     $user->datetime = $currentTime;
     $user->save();
+    
+      if ($user->gender == 'female') { 
+        // Get male users who talked for at least 5 minutes with this female user
+        $callCounts = UserCalls::select(
+                'user_id', 
+                'call_user_id',
+                DB::raw('SUM(TIMESTAMPDIFF(MINUTE, started_time, ended_time)) as total_minutes')
+            )
+            ->where('call_user_id', $user_id) // Calls where the female user was called
+            ->whereNotNull('started_time')
+            ->whereNotNull('ended_time')
+            ->groupBy('user_id', 'call_user_id')
+            ->having('total_minutes', '>=', 5) // Only consider if total talk time is 5+ minutes
+            ->orderByDesc('total_minutes') // Sort by longest talk time
+            ->get();
+    
+        // Loop through male users who have talked at least 5 minutes with this female user
+        $callCounts->each(function ($item) {
+            $maleUser = Users::find($item->user_id);
+            $femaleUser = Users::find($item->call_user_id);
+    
+            if (!$maleUser || !$femaleUser) {
+                return; // Skip if user data is missing
+            }
+    
+            // Check if female user is available (either audio or video is enabled)
+            if ($femaleUser->audio_status == 1 || $femaleUser->video_status == 1) {
+                // Fetch last notification time for this male user
+                $lastNotification = PersonalNotifications::where('user_id', $maleUser->id)
+                    ->orderByDesc('datetime')
+                    ->first();
+    
+                // Send notification only if no notification was sent in the last 30 minutes
+                if (!$lastNotification || now()->diffInMinutes(Carbon::parse($lastNotification->datetime)) >= 30) {
+                    PersonalNotifications::create([
+                        'user_id' => $maleUser->id,
+                        'title' => "{$femaleUser->name} is now online",
+                        'description' => "Let's make a conversation!",
+                        'datetime' => now(),
+                    ]);
+    
+                    OneSignal::sendNotificationCustom([
+                        "app_id" => "2878a3a7-8a9a-4902-b255-72e9af65af29",
+                        "include_external_user_ids" => [(string) $maleUser->id],
+                        "headings" => ["en" => "{$femaleUser->name} is now online."],
+                        "contents" => ["en" => "Let's make a conversation!"],
+                        "small_icon" => "notification_icon",
+                        "large_icon" => "https://hidude.in/storage/uploads/logo/hidude.png"
+                    ]);
+                }
+            }
+        });
+    }
 
     // Fetch additional details for response
     $avatar = Avatars::find($user->avatar_id);
     $gender = $avatar ? $avatar->gender : '';
 
-    $imageUrl = $avatar && $avatar->image 
-        ? asset('storage/app/public/' . $avatar->image) : '';
+ $imageUrl = ($user && $user->image) 
+    ? asset('storage/app/public/' . $user->image) 
+    : ($avatar && $avatar->image 
+        ? asset('storage/app/public/' . $avatar->image) 
+        : '');
     $voicePath = $user && $user->voice 
         ? asset('storage/app/public/voices/' . $user->voice) : '';
 
@@ -1355,18 +1471,18 @@ public function calls_status_update(Request $request)
         'success' => true,
         'message' => 'Call status updated successfully.',
         'data' => [
-            'id' => $user->id,
-            'name' => $user->name,
-            'user_gender' => $user->gender,
+             'id' => $user->id,
+            'name' => $user->name ?? '',
+            'user_gender' => $user->gender ?? '',
             'avatar_id' => (int) $user->avatar_id,
             'image' => $imageUrl ?? '',
-            'gender' => $gender,
-            'language' => $user->language,
+            'gender' => $gender ?? '',
+            'language' => $user->language ?? '',
             'age' => (int) $user->age ?? '',
             'mobile' => $user->mobile ?? '',
             'interests' => $user->interests ?? '',
             'describe_yourself' => $user->describe_yourself ?? '',
-            'voice' => $voicePath,
+            'voice' => $voicePath ?? '',
             'status' => $user->status ?? '',
             'balance' => (int) $user->balance ?? '',
             'audio_status' => (int) $user->audio_status ?? '',
@@ -1381,6 +1497,7 @@ public function calls_status_update(Request $request)
         ],
     ], 200);
 }
+
 
 
 public function call_female_user(Request $request)
@@ -1502,13 +1619,31 @@ public function call_female_user(Request $request)
     $caller = users::find($insertedCallData->user_id);
     $receiver = users::find($insertedCallData->call_user_id);
 
-    // Fetch avatar image for receiver
-    $receiverAvatar = Avatars::find($receiver->avatar_id);
-    $receiverImageUrl = ($receiverAvatar && $receiverAvatar->image) ? asset('storage/app/public/' . $receiverAvatar->image) : '';
+     $receiverAvatar = Avatars::find($receiver->avatar_id);
+    $receiverImageUrl = '';
+    
+    // ✅ Apply the profile_status condition for receiver
+    if (($receiver->profile_status == 0 || $receiver->profile_status == 1 || $receiver->profile_status == 3) && $receiverAvatar && $receiverAvatar->image) {
+        // Show avatar image if profile_status = 0
+        $receiverImageUrl = asset('storage/app/public/' . $receiverAvatar->image);
+    } elseif ($receiver->profile_status == 2 && $receiver->image) {
+        // Show user image if profile_status = 1 and the user has an image
+        $receiverImageUrl = asset('storage/app/public/' . $receiver->image);
+    }
+
 
     // Fetch avatar image for caller if needed
     $callerAvatar = Avatars::find($caller->avatar_id);
-    $callerImageUrl = ($callerAvatar && $callerAvatar->image) ? asset('storage/app/public/' . $callerAvatar->image) : '';
+    $callerImageUrl = '';
+
+  if ($caller->image) {
+    // Show user image if available
+    $callerImageUrl = asset('storage/app/public/' . $caller->image);
+    } elseif ($callerAvatar && $callerAvatar->image) {
+        // Show avatar image if user image is not available
+        $callerImageUrl = asset('storage/app/public/' . $callerAvatar->image);
+    }
+
 
     // Increment missed_calls for the call_user_id user
     $receiver->missed_calls += 1;
@@ -1538,6 +1673,7 @@ public function call_female_user(Request $request)
 }
 public function random_user(Request $request)
 {
+    
     $authenticatedUser = auth('api')->user();
     if (!$authenticatedUser) {
         return response()->json([
@@ -1545,145 +1681,239 @@ public function random_user(Request $request)
             'message' => 'Unauthorized. Please provide a valid token.',
         ], 401);
     }
-
-    $user_id = $request->input('user_id');
-    $call_type = $request->input('call_type'); // Should be 'audio' or 'video'
-
-    // Validate user_id
-    if (empty($user_id)) {
+    
         return response()->json([
-            'success' => false,
-            'message' => 'user_id is empty.',
-        ], 200);
-    }
-
-    // Find the user
-    $user = Users::find($user_id);
-    if (!$user) {
-        return response()->json([
-            'success' => false,
-            'message' => 'user not found.',
-        ], 200);
-    }
-
-    if (empty($call_type)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'call_type is empty.',
-        ], 200);
-    }
-
-    // Validate call_type
-    if (!in_array($call_type, ['audio', 'video'])) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Invalid call_type. It must be either "audio" or "video".',
-        ], 200);
-    }
-
-    // Check if the user has enough coins
-    if ($call_type == 'video' && $user->coins < 60) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Insufficient coins for video call. Minimum 60 coins required.',
-        ], 200);
-    } elseif ($call_type == 'audio' && $user->coins < 10) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Insufficient coins for audio call. Minimum 10 coins required.',
-        ], 200);
-    }
-
-    $balance_time = '';
-    $coins = $user->coins;
-
-    if ($call_type == 'audio') {
-        // For audio calls: 10 coins = 1 minute
-        $minutes = floor($coins / 10);
-    } elseif ($call_type == 'video') {
-        // For video calls: 60 coins = 1 minute
-        $minutes = floor($coins / 60);
-    }
-
-    $seconds = 0;
-    $balance_time = sprintf('%d:%02d', $minutes, $seconds);
-
-    // Get the caller's language
-    $callerLanguage = $user->language;
-
-    // Query random female users with the same language
-    $query = Users::where('gender', 'female')
-                  ->where('language', $callerLanguage) // Match language
-                  ->orderBy('avg_call_percentage', 'desc')
-                  ->limit(10);
-
-    if ($call_type == 'video') {
-        $query->where('video_status', 1);
-    } else { // 'audio'
-        $query->where('audio_status', 1);
-    }
-
-    // Fetch random female user with the same language
-    $randomFemaleuser = $query->inRandomOrder()->first();
-
-    // If no users are found, return a busy message
-    if (!$randomFemaleuser) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Users are busy right now.',
-        ], 200);
-    }
-
-    // Insert call data into users_call table
-    $usersCalls = UserCalls::create([
-        'user_id' => $user->id,
-        'call_user_id' => $randomFemaleuser->id,
-        'type' => $call_type,
-        'datetime' => now(),
-    ]);
-
-    // Fetch inserted call data
-    $insertedCallData = UserCalls::find($usersCalls->id);
-
-    // Fetch names and avatars of users
-    $caller = Users::find($insertedCallData->user_id);
-    $receiver = Users::find($insertedCallData->call_user_id);
-
-    // Fetch avatar image for receiver
-    $receiverAvatar = Avatars::find($receiver->avatar_id);
-    $receiverImageUrl = ($receiverAvatar && $receiverAvatar->image) ? asset('storage/app/public/' . $receiverAvatar->image) : '';
-
-    // Fetch avatar image for caller
-    $callerAvatar = Avatars::find($caller->avatar_id);
-    $callerImageUrl = ($callerAvatar && $callerAvatar->image) ? asset('storage/app/public/' . $callerAvatar->image) : '';
-
-    // Update call status for the receiver
-    // if ($call_type == 'video') {
-    //     $receiver->video_status = 0;
-    // } else {
-    //     $receiver->audio_status = 0;
-    // }
-    $receiver->missed_calls += 1;
-    $receiver->save();
-
-    // Return response with success and inserted call data
-    return response()->json([
-        'success' => true,
-        'message' => 'Data created successfully.',
-        'data' => [
-            'call_id' => $insertedCallData->id,
-            'user_id' => $insertedCallData->user_id,
-            'user_name' => $caller ? $caller->name : '',
-            'user_avatar_image' => $callerImageUrl,
-            'call_user_id' => $insertedCallData->call_user_id,
-            'call_user_name' => $receiver ? $receiver->name : '',
-            'call_user_avatar_image' => $receiverImageUrl,
-            'type' => $insertedCallData->type,
-            'started_time' => $insertedCallData->started_time ?? '',
-            'balance_time' => $balance_time,
-            'date_time' => Carbon::parse($insertedCallData->date_time)->format('Y-m-d H:i:s'),
-        ],
+        'success' => false,
+        'message' => 'Random call is currently disabled. Please call individually.',
     ], 200);
+
+//     $user_id = $request->input('user_id');
+//     $call_type = $request->input('call_type'); // Should be 'audio' or 'video'
+
+//     // Validate user_id
+//     if (empty($user_id)) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'user_id is empty.',
+//         ], 200);
+//     }
+
+//     // Find the user
+//     $user = Users::find($user_id);
+//     if (!$user) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'user not found.',
+//         ], 200);
+//     }
+
+//     if (empty($call_type)) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'call_type is empty.',
+//         ], 200);
+//     }
+
+//     // Validate call_type
+//     if (!in_array($call_type, ['audio', 'video'])) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Invalid call_type. It must be either "audio" or "video".',
+//         ], 200);
+//     }
+
+//     // Check if the user has enough coins
+//     if ($call_type == 'video' && $user->coins < 60) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Insufficient coins for video call. Minimum 60 coins required.',
+//         ], 200);
+//     } elseif ($call_type == 'audio' && $user->coins < 10) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Insufficient coins for audio call. Minimum 10 coins required.',
+//         ], 200);
+//     }
+
+//     $balance_time = '';
+//     $coins = $user->coins;
+
+//     if ($call_type == 'audio') {
+//         // For audio calls: 10 coins = 1 minute
+//         $minutes = floor($coins / 10);
+//     } elseif ($call_type == 'video') {
+//         // For video calls: 60 coins = 1 minute
+//         $minutes = floor($coins / 60);
+//     }
+
+//     $seconds = 0;
+//     $balance_time = sprintf('%d:%02d', $minutes, $seconds);
+
+//   // Step 0: Set cooldown window
+// $cooldownMinutes = 5;
+// $cooldownThreshold = Carbon::now()->subMinutes($cooldownMinutes);
+
+// // Step 1: Get caller's language
+// $callerLanguage = $user->language;
+
+// // Step 2: Get active call user IDs
+// $activeCallUserIds = UserCalls::whereDate('datetime', Carbon::today())
+// ->whereNotNull('started_time')
+// ->whereNull('ended_time')
+// ->pluck('call_user_id')
+// ->toArray();
+
+// // Step 3: Get eligible female users
+// $eligibleFemaleUsers = Users::where('gender', 'female')
+//     ->where('language', $callerLanguage)
+//     ->where('id', '!=', $user->id)
+//     ->whereNotIn('id', $activeCallUserIds)
+//     ->when($call_type === 'video', fn($q) => $q->where('video_status', 1), fn($q) => $q->where('audio_status', 1))
+//     ->orderByDesc('last_seen')
+//     ->pluck('id')
+//     ->toArray();
+
+// // Step 4: Filter out users in cooldown
+// $cooldownUserIds = UserCalls::where('user_id', $user->id)
+//     ->whereNotNull('ended_time')
+//     ->where('ended_time', '>=', $cooldownThreshold)
+//     ->pluck('call_user_id')
+//     ->toArray();
+
+// $filteredUserIds = array_diff($eligibleFemaleUsers, $cooldownUserIds);
+
+// // Step 5: First pass — exclude already connected (for fresh candidates)
+// $alreadyConnectedIds = UserCalls::where('user_id', $user->id)
+//     ->where('type', $call_type)
+//     ->pluck('call_user_id')
+//     ->unique()
+//     ->toArray();
+
+// $firstPassUserIds = array_values(array_diff($filteredUserIds, $alreadyConnectedIds));
+
+// // Step 6: Get random_female_connecteds for this user
+// $randomConnectedIds = random_female_connecteds::where('user_id', $user->id)
+//     ->pluck('female_user_id')
+//     ->toArray();
+    
+    
+
+// // Step 7: Pick from first pass (never connected) — skip random connected
+// $nextUserId = null;
+
+// foreach ($firstPassUserIds as $candidateId) {
+//     if (!in_array($candidateId, $randomConnectedIds)) {
+//         $nextUserId = $candidateId;
+//         break;
+//     }
+// }
+
+// // Step 8: If not found, use rotation from filtered list
+// if (!$nextUserId) {
+//     $filteredUserIds = array_values($filteredUserIds); // Reindex for rotation
+
+//     $lastConnectedUserId = UserCalls::where('user_id', $user->id)
+//         ->where('type', $call_type)
+//         ->orderByDesc('id')
+//         ->value('call_user_id');
+
+//     $startIndex = array_search($lastConnectedUserId, $filteredUserIds);
+//     $startIndex = ($startIndex === false) ? 0 : ($startIndex + 1);
+
+//     // Rotate through and find next not in random_female_connecteds
+//     for ($i = 0; $i < count($filteredUserIds); $i++) {
+//         $index = ($startIndex + $i) % count($filteredUserIds);
+//         $candidateId = $filteredUserIds[$index];
+
+//         if (!in_array($candidateId, $randomConnectedIds)) {
+//             $nextUserId = $candidateId;
+//             break;
+//         }
+//     }
+// }
+
+// // Step 9: Final check
+// $femaleUser = $nextUserId ? Users::find($nextUserId) : null;
+
+// if (!$femaleUser) {
+//     return response()->json([
+//         'success' => false,
+//         'message' => 'Users are busy right now.',
+//     ], 200);
+// }
+//     // Insert call data into users_call table
+//     $usersCalls = UserCalls::create([
+//         'user_id' => $user->id,
+//         'call_user_id' => $femaleUser->id,
+//         'type' => $call_type,
+//         'datetime' => now(),
+//     ]);
+
+//     $random_female_connecteds = random_female_connecteds::create([
+//         'user_id' => $user->id,
+//         'female_user_id' => $femaleUser->id,
+//         'connected_time' => now(),
+//     ]);
+
+//     // Fetch inserted call data
+//     $insertedCallData = UserCalls::find($usersCalls->id);
+
+//     // Fetch names and avatars of users
+//     $caller = Users::find($insertedCallData->user_id);
+//     $receiver = Users::find($insertedCallData->call_user_id);
+
+//     $receiverAvatar = Avatars::find($receiver->avatar_id);
+//     $receiverImageUrl = '';
+    
+//     if (($receiver->profile_status == 0 || $receiver->profile_status == 1 || $receiver->profile_status == 3) && $receiverAvatar && $receiverAvatar->image) {
+//         // Show avatar image if profile_status = 0
+//         $receiverImageUrl = asset('storage/app/public/' . $receiverAvatar->image);
+//     } elseif ($receiver->profile_status == 2 && $receiver->image) {
+//         // Show user image if profile_status = 1 and the user has an image
+//         $receiverImageUrl = asset('storage/app/public/' . $receiver->image);
+//     }
+
+
+//     // Fetch avatar image for caller if needed
+//     $callerAvatar = Avatars::find($caller->avatar_id);
+//     $callerImageUrl = '';
+    
+//       if ($caller->image) {
+//     // Show user image if available
+//     $callerImageUrl = asset('storage/app/public/' . $caller->image);
+//     } elseif ($callerAvatar && $callerAvatar->image) {
+//         // Show avatar image if user image is not available
+//         $callerImageUrl = asset('storage/app/public/' . $callerAvatar->image);
+//     }
+
+
+//     // Update call status for the receiver
+//     // if ($call_type == 'video') {
+//     //     $receiver->video_status = 0;
+//     // } else {
+//     //     $receiver->audio_status = 0;
+//     // }
+//     $receiver->missed_calls += 1;
+//     $receiver->save();
+
+//     // Return response with success and inserted call data
+//     return response()->json([
+//         'success' => true,
+//         'message' => 'Data created successfully.',
+//         'data' => [
+//             'call_id' => $insertedCallData->id,
+//             'user_id' => $insertedCallData->user_id,
+//             'user_name' => $caller ? $caller->name : '',
+//             'user_avatar_image' => $callerImageUrl,
+//             'call_user_id' => $insertedCallData->call_user_id,
+//             'call_user_name' => $receiver ? $receiver->name : '',
+//             'call_user_avatar_image' => $receiverImageUrl,
+//             'type' => $insertedCallData->type,
+//             'started_time' => $insertedCallData->started_time ?? '',
+//             'balance_time' => $balance_time,
+//             'date_time' => Carbon::parse($insertedCallData->date_time)->format('Y-m-d H:i:s'),
+//         ],
+//     ], 200);
 }
 
 public function update_connected_call(Request $request)
@@ -1769,26 +1999,25 @@ public function update_connected_call(Request $request)
         ], 200);
     }
 
+    // $existingCall = UserCalls::where('user_id', $user_id)
+    // ->where('call_user_id', $call->call_user_id)
+    // ->where('started_time', $started_time)
+    // ->first();
+
+    //     if ($existingCall) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Call already exists with the same details.',
+    //         ], 200);
+    //     }
+
+
     if (!empty($call->ended_time)) {
         return response()->json([
             'success' => false, 
             'message' => 'Call has already been updated.'
         ], 200);
     }
-
-          // Check if the call already exists with the same details
-        $existingCall = UserCalls::where('user_id', $user_id)
-            ->where('call_user_id', $call->call_user_id)
-            ->where('started_time', $started_time)
-            ->where('ended_time', $ended_time)
-            ->first();
-            if ($existingCall) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Call already exists with the same details.',
-                ], 200);
-            }
-    
 
     // Convert the times to Carbon instances with today's date
     $currentDate = Carbon::now()->format('Y-m-d'); 
@@ -1814,51 +2043,108 @@ public function update_connected_call(Request $request)
     $callUser = Users::find($call->call_user_id);
     // Update audio_status or video_status based on call type
     
-    $currentTime = now();
-  if ($callType == 'audio') {
-    $callUser->audio_status = 1;
-    $callUser->last_audio_time_updated = $currentTime; // Update only audio timestamp
-    } elseif ($callType == 'video') {
-    $callUser->video_status = 1;
-    $callUser->last_video_time_updated = $currentTime; // Update only audio timestamp
-    }
-    $callUser->save();
-
-    // Determine coin deduction rates
+        $currentTime = now();
     if ($callType == 'audio') {
-        $coinsPerMinute = 10; // Per minute deduction
-        $incomePerMinute = 1; // Income per minute
+        $callUser->audio_status = 1;
+        $callUser->last_audio_time_updated = $currentTime; // Update only audio timestamp
+    } elseif ($callType == 'video') {
+        $callUser->video_status = 1;
+        $callUser->last_video_time_updated = $currentTime; // Update only audio timestamp
+    }
+     $callUser->save();
+      $startHour = $startTime->hour;
+    $endHour = $endTime->hour;
+    $startMinute = $startTime->minute;
+    $endMinute = $endTime->minute;
+    $startSecond = $startTime->second;
+    $endSecond = $endTime->second;
+    $currentCoinsBeforeDeduction = $user->coins; // Store coins before deduction
+
+    $maxMinutesAffordable = 0;
+    $actualCoinsSpend = 0;
+    $actualIncome = 0;
+    
+    if ($callType == 'audio') {
+        $coinsPerMinute = 10;
     } elseif ($callType == 'video') {
         $coinsPerMinute = 60;
-        $incomePerMinute = 6;
     }
+    
+    // Determine maximum minutes user can afford
+    $maxMinutesAffordable = floor($currentCoinsBeforeDeduction / $coinsPerMinute);
+    
+    // Ensure at least 1 minute is counted, but don't exceed what they can afford
+    $effectiveMinutes = min($maxMinutesAffordable, $durationMinutes);
+    
+    $durationSeconds = $endTime->diffInSeconds($startTime);
 
-    // Calculate total coins spent and earned
-    $coins_spend = $durationMinutes * $coinsPerMinute;
-    $income = $durationMinutes * $incomePerMinute;
+// If duration is less than 10 seconds, do not charge
+if ($durationSeconds < 10) {
+    $income = 0;
+    $coins_spend = 0;
+    $roundedMinutes = 0;
+} else {
+    $roundedMinutes = ceil($durationSeconds / 60); // **Round up seconds to full minute**
 
-    // Deduct coins only if duration is 10 seconds or more
-    if ($durationSeconds >= 10) {
-        $user->coins -= $coins_spend;
-        $user->save();
-    } else {
-        $coins_spend = 0;
-        $income = 0;
+    $maxMinutesAffordable = floor($currentCoinsBeforeDeduction / $coinsPerMinute);
+
+    // Use the minimum of rounded minutes and what the user can afford
+    $effectiveMinutes = min($maxMinutesAffordable, $roundedMinutes);
+
+    $actualCoinsSpend = $effectiveMinutes * $coinsPerMinute;
+    $actualIncome = 0;
+
+    for ($i = 0; $i < $effectiveMinutes; $i++) {
+        $currentHour = $startHour;
+        $currentMinute = $startMinute + $i;
+
+        if ($currentMinute >= 60) {
+            $currentMinute -= 60;
+            $currentHour++;
+        }
+        if ($currentHour >= 24) {
+            $currentHour -= 24;
+        }
+
+        // Determine income per minute based on time slot
+        if ($callType == 'audio') {
+            $incomePerMinute = ($currentHour >= 16 || $currentHour < 2) ? 2 : 2;
+        } else { // Video
+            $incomePerMinute = ($currentHour >= 16 || $currentHour < 2) ? 8 : 8;
+        }
+
+        $actualIncome += $incomePerMinute;
     }
+}
 
-    // Update the balance of the call_user_id user
-    $callUser = Users::find($call->call_user_id);
+// Deduct coins from the user, ensuring it doesn't go negative
+    $user->coins = max(0, $user->coins - $actualCoinsSpend);
+    $user->save();
+
+    
+    $currentCoinsAfterDeduction = $user->coins;
+    
+     $deductionTransaction = new Transactions();
+    $deductionTransaction->user_id = $user->id;
+    $deductionTransaction->coins = $actualCoinsSpend;
+    $deductionTransaction->type = 'coins_deduction';
+    $deductionTransaction->amount = 0;  
+    $deductionTransaction->datetime = now();
+    $deductionTransaction->save();
+  
+    // Update call recipient's balance
     if ($callUser) {
-        $callUser->balance += $income;
-        $callUser->total_income += $income;
+        $callUser->balance += $actualIncome;
+        $callUser->total_income += $actualIncome;
+        $callUser->last_seen = now();
         $callUser->save();
-
-        // Record the transaction for the call_user_id user
+    
+        // Record transaction
         $transaction = new Transactions();
         $transaction->user_id = $callUser->id;
         $transaction->coins = 0;
         $transaction->type = 'call_income';
-        $transaction->amount = $income; // Assuming no monetary amount for call income
+        $transaction->amount = $actualIncome;
         $transaction->datetime = now();
         $transaction->save();
     }
@@ -1866,20 +2152,22 @@ public function update_connected_call(Request $request)
     // Update call details
     $call->started_time = $startTime->format('H:i:s');
     $call->ended_time = $endTime->format('H:i:s'); 
-    $call->coins_spend = $coins_spend;
-    $call->income = $income;
+    $call->coins_spend = $actualCoinsSpend;
+    $call->income = $actualIncome;
+    $call->update_current_endedtime = now();
     $call->save();
 
     $callUser = Users::find($call->call_user_id);
     if ($callUser) {
         $callUser->attended_calls += 1;
         if ($callUser->missed_calls > 0) {
-            $callUser->missed_calls -= 1;
+            $callUser->missed_calls = 0;
         }
         $callUser->save();
     }
 
     $receiver = Users::find($call->call_user_id);
+    $currentCoinsAfterDeduction = $user->coins;
 
     return response()->json([
         'success' => true,
@@ -1895,6 +2183,9 @@ public function update_connected_call(Request $request)
             'started_time' => $call->started_time,
             'ended_time' => $call->ended_time,
             'date_time' => Carbon::parse($call->datetime)->format('Y-m-d H:i:s'),
+            'update_current_endedtime' => Carbon::parse($call->update_current_endedtime)->format('Y-m-d H:i:s'),
+             'available_coins_before_deduction' => $currentCoinsBeforeDeduction, // Show coins before deduction
+            'available_coins_after_deduction' => $currentCoinsAfterDeduction, // Show coins after deduction
         ],
     ], 200);
 }
@@ -1981,26 +2272,24 @@ public function individual_update_connected_call(Request $request)
         ], 200);
     }
 
+    // $existingCall = UserCalls::where('user_id', $user_id)
+    //     ->where('call_user_id', $call->call_user_id)
+    //     ->where('started_time', $started_time)
+    //     ->first();
+
+    //     if ($existingCall) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Call already exists with the same details.',
+    //         ], 200);
+    //     }
+
     if (!empty($call->ended_time)) {
         return response()->json([
             'success' => false, 
             'message' => 'Call has already been updated.'
         ], 200);
     }
-
-    $existingCall = UserCalls::where('user_id', $user_id)
-    ->where('call_user_id', $call->call_user_id)
-    ->where('started_time', $started_time)
-    ->where('ended_time', $ended_time)
-    ->first();
-    
-            if ($existingCall) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Call already exists with the same details.',
-                ], 200);
-            }
-    
 
     $user = users::find($user_id);
 
@@ -2042,53 +2331,108 @@ $durationMinutes = max(ceil($effectiveDurationSeconds / 60), 1);
 
 $callUser = Users::find($call->call_user_id);
     // Update audio_status or video_status based on call type
-    $currentTime = now();
-  if ($callType == 'audio') {
-    $callUser->audio_status = 1;
-    $callUser->last_audio_time_updated = $currentTime; // Update only audio timestamp
+       $currentTime = now();
+    if ($callType == 'audio') {
+        $callUser->audio_status = 1;
+        $callUser->last_audio_time_updated = $currentTime; // Update only audio timestamp
     } elseif ($callType == 'video') {
-    $callUser->last_video_time_updated = $currentTime; // Update only audio timestamp
+        $callUser->video_status = 1;
+        $callUser->last_video_time_updated = $currentTime; // Update only audio timestamp
     }
     $callUser->save();
+     $startHour = $startTime->hour;
+    $endHour = $endTime->hour;
+    $startMinute = $startTime->minute;
+    $endMinute = $endTime->minute;
+    $startSecond = $startTime->second;
+    $endSecond = $endTime->second;
+    $currentCoinsBeforeDeduction = $user->coins; // Store coins before deduction
 
-// Determine coin deduction rates
-if ($callType == 'audio') {
-    $coinsPerMinute = 10; // Per minute deduction
-    $incomePerMinute = 1; // Income per minute
-} elseif ($callType == 'video') {
-    $coinsPerMinute = 60;
-    $incomePerMinute = 6;
-}
+    $maxMinutesAffordable = 0;
+    $actualCoinsSpend = 0;
+    $actualIncome = 0;
+    
+    if ($callType == 'audio') {
+        $coinsPerMinute = 10;
+    } elseif ($callType == 'video') {
+        $coinsPerMinute = 60;
+    }
+    
+    // Determine maximum minutes user can afford
+    $maxMinutesAffordable = floor($currentCoinsBeforeDeduction / $coinsPerMinute);
+    
+    // Ensure at least 1 minute is counted, but don't exceed what they can afford
+    $effectiveMinutes = min($maxMinutesAffordable, $durationMinutes);
+    
+    $durationSeconds = $endTime->diffInSeconds($startTime);
 
-// Calculate total coins spent and earned
-$coins_spend = $durationMinutes * $coinsPerMinute;
-$income = $durationMinutes * $incomePerMinute;
-
-// Deduct coins only if duration is 10 seconds or more
-if ($durationSeconds >= 10) {
-    $user->coins -= $coins_spend;
-    $user->save();
-} else {
-    $coins_spend = 0;
+// If duration is less than 10 seconds, do not charge
+if ($durationSeconds < 10) {
     $income = 0;
+    $coins_spend = 0;
+    $roundedMinutes = 0;
+} else {
+    $roundedMinutes = ceil($durationSeconds / 60); // **Round up seconds to full minute**
+
+    $maxMinutesAffordable = floor($currentCoinsBeforeDeduction / $coinsPerMinute);
+
+    // Use the minimum of rounded minutes and what the user can afford
+    $effectiveMinutes = min($maxMinutesAffordable, $roundedMinutes);
+
+    $actualCoinsSpend = $effectiveMinutes * $coinsPerMinute;
+    $actualIncome = 0;
+
+    for ($i = 0; $i < $effectiveMinutes; $i++) {
+        $currentHour = $startHour;
+        $currentMinute = $startMinute + $i;
+
+        if ($currentMinute >= 60) {
+            $currentMinute -= 60;
+            $currentHour++;
+        }
+        if ($currentHour >= 24) {
+            $currentHour -= 24;
+        }
+
+        // Determine income per minute based on time slot
+        if ($callType == 'audio') {
+            $incomePerMinute = ($currentHour >= 16 || $currentHour < 2) ? 2 : 2;
+        } else { // Video
+            $incomePerMinute = ($currentHour >= 16 || $currentHour < 2) ? 8 : 8;
+        }
+
+        $actualIncome += $incomePerMinute;
+    }
 }
 
+// Deduct coins from the user, ensuring it doesn't go negative
+    $user->coins = max(0, $user->coins - $actualCoinsSpend);
+    $user->save();
 
-   
-    // Update the balance of the call_user_id user
-    $callUser = Users::find($call->call_user_id);
-
+    
+    $currentCoinsAfterDeduction = $user->coins;
+    
+     $deductionTransaction = new Transactions();
+    $deductionTransaction->user_id = $user->id;
+    $deductionTransaction->coins = $actualCoinsSpend;
+    $deductionTransaction->type = 'coins_deduction';
+    $deductionTransaction->amount = 0;  
+    $deductionTransaction->datetime = now();
+    $deductionTransaction->save();
+  
+    // Update call recipient's balance
     if ($callUser) {
-        $callUser->balance += $income;
-        $callUser->total_income += $income;
+        $callUser->balance += $actualIncome;
+        $callUser->total_income += $actualIncome;
+        $callUser->last_seen = now();
         $callUser->save();
-
-        // Record the transaction for the call_user_id user
+    
+        // Record transaction
         $transaction = new Transactions();
         $transaction->user_id = $callUser->id;
         $transaction->coins = 0;
         $transaction->type = 'call_income';
-        $transaction->amount = $income; // Assuming no monetary amount for call income
+        $transaction->amount = $actualIncome;
         $transaction->datetime = now();
         $transaction->save();
     }
@@ -2096,8 +2440,9 @@ if ($durationSeconds >= 10) {
     // Update call details
     $call->started_time = $startTime->format('H:i:s');
     $call->ended_time = $endTime->format('H:i:s'); 
-    $call->coins_spend = $coins_spend;
-    $call->income = $income;
+    $call->coins_spend = $actualCoinsSpend;
+    $call->income = $actualIncome;
+    $call->update_current_endedtime = now();
     $call->save();
 
 
@@ -2105,13 +2450,15 @@ if ($durationSeconds >= 10) {
     if ($callUser) {
         $callUser->attended_calls += 1;
         if ($callUser->missed_calls > 0) {
-            $callUser->missed_calls -= 1;
+            $callUser->missed_calls = 0;
         }
         $callUser->save();
     
     }
 
     $receiver = Users::find($call->call_user_id);
+    
+    $currentCoinsAfterDeduction = $user->coins;
 
     return response()->json([
         'success' => true,
@@ -2127,9 +2474,13 @@ if ($durationSeconds >= 10) {
             'started_time' => $call->started_time,
             'ended_time' => $call->ended_time,
             'date_time' => Carbon::parse($call->datetime)->format('Y-m-d H:i:s'),
+            'update_current_endedtime' => Carbon::parse($call->update_current_endedtime)->format('Y-m-d H:i:s'),
+             'available_coins_before_deduction' => $currentCoinsBeforeDeduction, // Show coins before deduction
+            'available_coins_after_deduction' => $currentCoinsAfterDeduction, // Show coins after deduction
         ],
     ], 200);
 }
+
 public function calls_list(Request $request)
 {
     $authenticatedUser = auth('api')->user();
@@ -2238,18 +2589,35 @@ public function calls_list(Request $request)
             $duration = sprintf('%d min', $durationMinutes);
         }
 
-        // Prepare avatar and image URL
+       // Prepare avatar and image URL
         $avatar = null;
         $imageUrl = '';
+        
         if ($gender === 'male') {
             $receiver = Users::find($call->call_user_id);
             $avatar = Avatars::find($receiver->avatar_id);
-            $imageUrl = ($avatar && $avatar->image) ? asset('storage/app/public/' . $avatar->image) : '';
+        
+            if (($receiver->profile_status == 0 || $receiver->profile_status == 1 || $receiver->profile_status == 3) && $avatar && $avatar->image) {
+                // Show avatar image if profile_status = 0
+                $imageUrl = asset('storage/app/public/' . $avatar->image);
+            } elseif ($receiver->profile_status == 2 && $receiver->image) {
+                // Show user image if profile_status = 1 and user has an image
+                $imageUrl = asset('storage/app/public/' . $receiver->image);
+            }
+        
         } elseif ($gender === 'female') {
             $caller = Users::find($call->user_id);
             $avatar = Avatars::find($caller->avatar_id);
-            $imageUrl = ($avatar && $avatar->image) ? asset('storage/app/public/' . $avatar->image) : '';
+        
+            if (($caller->profile_status == 0 || $caller->profile_status == 1 || $caller->profile_status == 3) && $avatar && $avatar->image) {
+                // Show avatar image if profile_status = 0
+                $imageUrl = asset('storage/app/public/' . $avatar->image);
+            } elseif ($caller->profile_status == 2 && $caller->image) {
+                // Show user image if profile_status = 1 and user has an image
+                $imageUrl = asset('storage/app/public/' . $caller->image);
+            }
         }
+
 
         // Add data to response array
         if ($gender === 'male') {
@@ -2366,13 +2734,39 @@ public function female_call_attend(Request $request)
     $seconds = 0;
     $balance_time = sprintf('%d:%02d', $minutes, $seconds);
 
-    // Fetch names and avatar images for caller and receiver
-    $caller = Users::find($userCall->user_id);
-    $callerAvatar = $caller ? Avatars::find($caller->avatar_id) : '';
+   $caller = Users::find($userCall->user_id);
     $receiver = Users::find($userCall->call_user_id);
+    
+    $callerImageUrl = '';
+    $receiverImageUrl = '';
+    
+    // ✅ Apply profile_status condition for caller
+    if ($caller) {
+        $callerAvatar = Avatars::find($caller->avatar_id);
+    
+        if ($caller->image) {
+            // Show user image if available
+            $callerImageUrl = asset('storage/app/public/' . $caller->image);
+        } elseif ($callerAvatar && $callerAvatar->image) {
+            // Show avatar image if user image is not available
+            $callerImageUrl = asset('storage/app/public/' . $callerAvatar->image);
+        }
 
-    // Update audio_status or video_status for receiver only
+    }
+    
+    // ✅ Apply profile_status condition for receiver
     if ($receiver) {
+        $receiverAvatar = Avatars::find($receiver->avatar_id);
+    
+        if (($receiver->profile_status == 0 || $receiver->profile_status == 1 || $receiver->profile_status == 3) && $receiverAvatar && $receiverAvatar->image) {
+            // Show avatar image if profile_status = 0
+            $receiverImageUrl = asset('storage/app/public/' . $receiverAvatar->image);
+        } elseif ($receiver->profile_status == 2 && $receiver->image) {
+            // Show user image if profile_status = 1 and the user has an image
+            $receiverImageUrl = asset('storage/app/public/' . $receiver->image);
+        }
+    
+        // Update audio_status or video_status for receiver only
         if ($userCall->type === 'audio') {
             $receiver->audio_status = 0;
         } else {
@@ -2382,8 +2776,6 @@ public function female_call_attend(Request $request)
     }
 
     $receiverAvatar = $receiver ? Avatars::find($receiver->avatar_id) : '';
-    $callerImageUrl = ($callerAvatar && $callerAvatar->image) ? asset('storage/app/public/' . $callerAvatar->image) : '';
-    $receiverImageUrl = ($receiverAvatar && $receiverAvatar->image) ? asset('storage/app/public/' . $receiverAvatar->image) : '';
 
     // Return response
     return response()->json([
@@ -2410,6 +2802,7 @@ public function female_call_attend(Request $request)
 
 public function get_remaining_time(Request $request)
 {
+    // Authenticate user
     $authenticatedUser = auth('api')->user();
     if (!$authenticatedUser) {
         return response()->json([
@@ -2421,18 +2814,11 @@ public function get_remaining_time(Request $request)
     $user_id = $request->input('user_id');
     $call_type = $request->input('call_type');
 
+    // Validate inputs
     if (empty($user_id)) {
         return response()->json([
             'success' => false,
             'message' => 'user_id is empty.',
-        ], 200);
-    }
-
-    $user = Users::find($user_id);
-    if (!$user) {
-        return response()->json([
-            'success' => false,
-            'message' => 'User not found for the provided user_id.',
         ], 200);
     }
 
@@ -2443,7 +2829,6 @@ public function get_remaining_time(Request $request)
         ], 200);
     }
 
-    // Validate call_type
     if (!in_array($call_type, ['audio', 'video'])) {
         return response()->json([
             'success' => false,
@@ -2451,27 +2836,68 @@ public function get_remaining_time(Request $request)
         ], 200);
     }
 
-    // Determine coin-to-minute conversion rate based on call type
+    // Fetch the latest user data including coins
+    $user = Users::find($user_id);
+    
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not found for the provided user_id.',
+        ], 200);
+    }
+
+    // Get the call details from the user_calls table
+    $call = DB::table('user_calls')
+        ->where('user_id', $user_id)
+        ->where('type', $call_type)
+        ->whereNull('ended_time')  // Ongoing call
+        ->latest()
+        ->first();
+
+    $elapsed_minutes = 0;
+    $elapsed_seconds = 0;
+
+    if ($call && $call->started_time) {
+        $started_time = Carbon::parse($call->started_time);
+        $current_time = Carbon::now();
+        $elapsed_seconds = $current_time->diffInSeconds($started_time);
+
+        $elapsed_minutes = floor($elapsed_seconds / 60);
+        $elapsed_seconds %= 60;
+    }
+
+    // Determine the coin-to-time conversion rate
     $conversion_rate = ($call_type === 'video') ? 60 : 10;
 
-    // Find the user and fetch balance time
-    $user = Users::find($user_id);
-    $coins = $user ? $user->coins : 0;
+    // Get the latest coin balance (after recharge)
+    $user->refresh();
+    $coins = $user->coins;
 
-    // Calculate remaining time based on conversion rate
-    $minutes = floor($coins / $conversion_rate);
-    $seconds = 0;
-    $balance_time = sprintf('%d:%02d', $minutes, $seconds);
+    // Calculate remaining time accurately
+    $total_seconds = ($coins / $conversion_rate) * 60;  // Convert remaining coins to seconds
 
-    // Return response
+    // Subtract elapsed time from the total time
+    $remaining_seconds = max(0, $total_seconds - ($elapsed_minutes * 60 + $elapsed_seconds));
+
+    // Calculate remaining minutes and seconds
+    $remaining_minutes = floor($remaining_seconds / 60);
+    $remaining_seconds %= 60;
+
+    // Format remaining time with minutes and seconds
+    $balance_time = sprintf('%d:%02d', $remaining_minutes, $remaining_seconds);
+
+    // Return the response
     return response()->json([
         'success' => true,
         'message' => 'Remaining Time Listed successfully.',
         'data' => [
-            'remaining_time' => $balance_time,
+            'remaining_time' => $balance_time,       // Shows minutes and seconds
+            'elapsed_time' => sprintf('%d:%02d', $elapsed_minutes, $elapsed_seconds),
+            'latest_coins' => $coins,
         ],
     ], 200);
 }
+
 
 public function reports(Request $request)
 {
@@ -2504,6 +2930,8 @@ public function reports(Request $request)
         ], 200);
     }
 
+    $user->last_seen = now();
+    $user->save();
 
     $callCount = UserCalls::where('call_user_id', $user_id)
         ->whereDate('datetime', now()->toDateString())
@@ -2944,25 +3372,141 @@ public function ratings(Request $request)
 
 public function add_coins(Request $request)
 {
-  
+    // ✅ Extract and validate request data
+    $user_id = $request->input('user_id');
+    $coins_id = $request->input('coins_id');
+    $order_id = $request->input('order_id');
+    $status = $request->input('status');
+    $message = $request->input('message');
+
+    if (empty($user_id)) {
+        return response()->json(['success' => false, 'message' => 'user_id is empty.'], 400);
+    }
+
+    if (empty($coins_id)) {
+        return response()->json(['success' => false, 'message' => 'coins_id is empty.'], 400);
+    }
+
+    if (empty($order_id)) {
+        return response()->json(['success' => false, 'message' => 'coins_id is empty.'], 400);
+    }
+
+    if (empty($status)) {
+        return response()->json(['success' => false, 'message' => 'status is empty.'], 400);
+    }
+
+    $user = Users::find($user_id);
+    if (!$user) {
+        return response()->json(['success' => false, 'message' => 'User not found.'], 404);
+    }
+
+    $coins_entry = Coins::find($coins_id);
+    if (!$coins_entry) {
+        return response()->json(['success' => false, 'message' => 'Coins entry not found.'], 404);
+    }
+
+    $existing_order = Orders::where('user_id', $user_id)
+        ->where('coins_id', $coins_id)
+        ->where('order_id', $order_id)
+        ->where('status', 0)
+        ->latest('datetime')
+        ->first();
+
+    if ($existing_order) {
+        // Update existing order status and message
+        $existing_order->status = $status;
+        $existing_order->message = $message;
+        $existing_order->datetime = now();
+
+        if (!$existing_order->save()) {
+            return response()->json(['success' => false, 'message' => 'Failed to update existing order.'], 500);
+        }
+
+        if ($status == 1) {
+            // ✅ Add coins only when status is 1
+            $coins = $coins_entry->coins;
+            $price = $coins_entry->price;
+
+            // Update user balance
+            $user->coins += $coins;
+            $user->total_coins += $coins;
+
+            if (!$user->save()) {
+                return response()->json(['success' => false, 'message' => 'Failed to update user coins.'], 500);
+            }
+
+            // Save transaction
+            $transaction = new Transactions();
+            $transaction->user_id = $user_id;
+            $transaction->coins = $coins;
+            $transaction->type = 'add_coins';
+            $transaction->amount = $price;
+            $transaction->datetime = now();
+
+            if (!$transaction->save()) {
+                return response()->json(['success' => false, 'message' => 'Failed to save transaction.'], 500);
+            }
+        }
+
+        // ✅ Return successful response
+        $user = Users::select('name', 'coins', 'total_coins')->find($user_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => $status == 1 ? 'Coins added successfully.' : 'Order status updated, no coins added.',
+            'data' => [
+                'name' => $user->name,
+                'coins' => (string) $user->coins,
+                'total_coins' => (string) $user->total_coins,
+            ],
+        ], 200);
+    } else {
+        return response()->json(['success' => false, 'message' => 'No existing order found.'], 404);
+    }
+}
+
+
+
+
+public function try_coins(Request $request)
+{
+    // Extract request data
     $user_id = $request->input('user_id'); 
     $coins_id = $request->input('coins_id');
+    $order_id = $request->input('order_id');
+    $status = $request->input('status');
+    $message = $request->input('message');
 
     // Validate user_id
     if (empty($user_id)) {
         return response()->json([
             'success' => false,
             'message' => 'user_id is empty.',
-        ], 200);
+        ], 400);
     }
 
-    // Validate points_id
+    // Validate coins_id
     if (empty($coins_id)) {
         return response()->json([
             'success' => false,
             'message' => 'coins_id is empty.',
-        ], 200);
+        ], 400);
     }
+
+    if (empty($order_id)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'order_id is empty.',
+        ], 400);
+    }
+
+    if (!isset($status)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'status is empty.',
+        ], 400);
+    }
+    
 
     // Check if user exists
     $user = Users::find($user_id);
@@ -2970,51 +3514,43 @@ public function add_coins(Request $request)
         return response()->json([
             'success' => false,
             'message' => 'User not found.',
-        ], 200);
+        ], 404);
     }
 
-    // Check if points entry exists
+    // Check if coins entry exists
     $coins_entry = Coins::find($coins_id);
     if (!$coins_entry) {
         return response()->json([
             'success' => false,
             'message' => 'Coins entry not found.',
-        ], 200);
+        ], 404);
     }
 
-    // Get points from the points entry
+    // Get coin details
     $coins = $coins_entry->coins;
     $price = $coins_entry->price;
 
-    // Add points to the user's points field
-    $user->coins += $coins;
-    $user->total_coins += $coins;
-    if (!$user->save()) {
+    $order = new Orders();
+    $order->user_id = $user_id;
+    $order->coins_id = $coins_id;
+    $order->order_id = $order_id;
+    $order->status = $status;                  // Status set to 1
+    $order->price = $price;   
+    $order->message = $message;           // Use coins price
+    $order->datetime = now();            // Current timestamp
+
+    if (!$order->save()) {
         return response()->json([
             'success' => false,
-            'message' => 'Failed to update user coins.',
+            'message' => 'Failed to insert order.',
         ], 500);
     }
 
-    // Record the transaction
-    $transaction = new Transactions();
-    $transaction->user_id = $user_id;
-    $transaction->coins = $coins;
-    $transaction->type = 'add_coins';
-    $transaction->amount = $price;
-    $transaction->datetime = now();
-
-    if (!$transaction->save()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to save transaction.',
-        ], 500);
-    }
     $user = Users::select('name', 'coins', 'total_coins')->find($user_id);
-    // Return success response
+
     return response()->json([
         'success' => true,
-        'message' => 'Coins added successfully.',
+        'message' => 'Orders Created Successfully.',
         'data' => [
             'name' => $user->name,
             'coins' => (string) $user->coins,
@@ -3024,37 +3560,116 @@ public function add_coins(Request $request)
 }
 public function cron_jobs(Request $request)
 {
-    $users = Users::where('missed_calls', '>', 0)
-                    ->orWhere('attended_calls', '>', 0)
-                    ->get();
-    $currentTime = Carbon::now();
 
-        foreach ($users as $user) {
-        // Calculate total calls
-          if ($user->last_audio_time_updated && $currentTime->diffInHours($user->last_audio_time_updated) >= 1) {
-            $user->audio_status = 0;
-            $user->missed_calls = 0;
-            $user->attended_calls = 0;
+    $currentTime = Carbon::now('Asia/Kolkata');
+    $currentDay = $currentTime->format('l'); // Get current day (e.g., Monday, Tuesday)
+    $currentHourMinute = $currentTime->format('H:i'); // Get current time (HH:MM)
+
+     $expiredConnections = DB::table('random_female_connecteds')->get();
+    
+        foreach ($expiredConnections as $row) {
+            if (isset($row->connected_time)) {
+                $connectedTime = Carbon::parse($row->connected_time, 'Asia/Kolkata');
+                $diffInSeconds = $currentTime->diffInSeconds($connectedTime);
+    
+                if ($diffInSeconds > 60) { // More than 1 minute
+                    DB::table('random_female_connecteds')
+                        ->where('user_id', $row->user_id)
+                        ->where('female_user_id', $row->female_user_id)
+                        ->delete();
+                }
+            }
+        }
+        
+         DB::table('users')
+        ->where('gender', 'female')
+        ->where('missed_calls', '>=', 5)
+        ->update([
+            'audio_status' => 0,
+            'video_status' => 0,
+            'missed_calls' => 0,
+        ]);
+        
+        $notifications = ScreenNotifications::where('notification_enable', 1) // Check if enabled
+        ->where(function ($query) use ($currentDay) {
+            $query->where('day', $currentDay)
+                ->orWhere('day', 'all'); // Include notifications for "all" days
+        })
+        ->where('time', $currentHourMinute)
+        ->get();
+
+        if ($notifications->isNotEmpty()) {
+            $notifications->each(function ($notification) {
+                // Set default values if gender or language is missing
+                $gender = $notification->gender ?? 'all';
+                $language = $notification->language ?? 'all';
+
+                // Define filters based on gender and language
+                $filters = [];
+
+                if ($gender !== 'all' && $language !== 'all') {
+                    $filters[] = ["field" => "tag", "key" => "gender_language", "relation" => "=", "value" => "{$gender}_{$language}"];
+                } elseif ($gender !== 'all') {
+                    $filters[] = ["field" => "tag", "key" => "gender", "relation" => "=", "value" => "{$gender}"];
+                } elseif ($language !== 'all') {
+                    $filters[] = ["field" => "tag", "key" => "language", "relation" => "=", "value" => "{$language}"];
+                }
+
+                // If both gender and language are 'all', send to everyone
+                if ($gender === 'all' && $language === 'all') {
+                    $filters = []; // No filters means send to all users
+                }
+
+                // Prepare notification payload
+                $payload = [
+                    "app_id" => "2878a3a7-8a9a-4902-b255-72e9af65af29",
+                    "filters" => $filters,
+                    "headings" => ["en" => $notification->title],
+                    "contents" => ["en" => $notification->description],
+                    "small_icon" => "notification_icon",
+                    "large_icon" => $notification['logo'] ? "https://hidude.in/storage/app/public/{$notification['logo']}" : "https://hidude.in/storage/uploads/logo/hidude.png",
+                    "big_picture" => $notification['image'] ? "https://hidude.in/storage/app/public/{$notification['image']}" : "",
+                ];
+
+                // Send notification via OneSignal
+                OneSignal::sendNotificationCustom($payload);
+            });
         }
 
-        if ($user->last_video_time_updated && $currentTime->diffInHours($user->last_video_time_updated) >= 1) {
-            $user->video_status = 0;
-            $user->missed_calls = 0;
-            $user->attended_calls = 0;
-        }
-
-        $totalCalls = $user->attended_calls + $user->missed_calls;
-        // Calculate avg_call_percentage
-        if ($totalCalls > 0) {
-        $user->avg_call_percentage = ($user->attended_calls / $totalCalls) * 100;
-        } else {
-        $user->avg_call_percentage = 0;
-        }
-
-        // Save the updated user
-         $user->save();
-        }
 }
+// public function cron_jobs(Request $request)
+// {
+//     $users = Users::where('missed_calls', '>', 0)
+//                     ->orWhere('attended_calls', '>', 0)
+//                     ->get();
+//     $currentTime = Carbon::now();
+
+//         foreach ($users as $user) {
+//         // Calculate total calls
+//           if ($user->last_audio_time_updated && $currentTime->diffInHours($user->last_audio_time_updated) >= 1) {
+//             $user->audio_status = 0;
+//             $user->missed_calls = 0;
+//             $user->attended_calls = 0;
+//         }
+
+//         if ($user->last_video_time_updated && $currentTime->diffInHours($user->last_video_time_updated) >= 1) {
+//             $user->video_status = 0;
+//             $user->missed_calls = 0;
+//             $user->attended_calls = 0;
+//         }
+
+//         $totalCalls = $user->attended_calls + $user->missed_calls;
+//         // Calculate avg_call_percentage
+//         if ($totalCalls > 0) {
+//         $user->avg_call_percentage = ($user->attended_calls / $totalCalls) * 100;
+//         } else {
+//         $user->avg_call_percentage = 0;
+//         }
+
+//         // Save the updated user
+//          $user->save();
+//         }
+// }
 
 // public function cron_updates(Request $request)
 // {
@@ -3149,5 +3764,279 @@ public function gifts_list(Request $request)
         'data' => $giftsData,
     ], 200);
 }
+
+
+   public function update_image(Request $request)
+{
+    $users = auth('api')->user(); // Retrieve the authenticated user
+
+    if (empty($users)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to retrieve user details.',
+        ], 200);
+    }
+
+    $user_id = $request->input('user_id');
+
+    if (empty($user_id)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'user_id is empty.',
+        ], 200);
+    }
+
+    $user = Users::find($user_id);
+
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not found.',
+        ], 200);
+    }
+
+    $name = $request->input('name');
+
+    if (!empty($name) && Users::where('name', $name)->where('id', '!=', $user_id)->exists()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'The provided name already exists.',
+        ], 200);
+    }
+
+    // Update name if provided
+    if ($name !== null) {
+        $user->name = $name;
+    }
+
+    // ✅ Image is mandatory
+    if (!$request->hasFile('image')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Image is required.',
+        ], 200);
+    }
+    
+    if (in_array($user->profile_status, [2, 3])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profile image update is not allowed as your profile is already ' . 
+                             ($user->profile_status == 2 ? 'verified.' : 'cancelled.'),
+            ], 200);
+        }
+
+    // Handle image upload
+    if ($request->hasFile('image')) {
+        $image = $request->file('image');
+        $imagePath = $image->store('images', 'public');  // Store image in the public disk
+        $user->image = $imagePath;  // Save image path in the DB
+        $user->profile_status = 0;  // Update profile_status to 0
+    }
+
+    $user->save();
+
+    // Get the user's avatar
+    $avatar = Avatars::find($user->avatar_id);
+    $gender = $avatar ? $avatar->gender : '';
+
+    $imageUrl = ($user && $user->image) 
+    ? asset('storage/app/public/' . $user->image) 
+    : ($avatar && $avatar->image 
+        ? asset('storage/app/public/' . $avatar->image) 
+        : '');
+
+    $voicePath = $user->voice 
+        ? asset('storage/app/public/voices/' . $user->voice) 
+        : '';
+
+    return response()->json([
+        'success' => true,
+        'message' => 'User details updated successfully.',
+        'data' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'user_gender' => $user->gender,
+            'language' => $user->language,
+            'mobile' => $user->mobile,
+            'avatar_id' => (int) $user->avatar_id,
+            'image' => $imageUrl,
+            'gender' => $gender,
+            'age' => (int) $user->age ?? '',
+            'interests' => $user->interests ?? '',
+            'describe_yourself' => $user->describe_yourself ?? '',
+            'voice' => $voicePath ?? '',
+            'status' => $user->status ?? '',
+            'balance' => (int) $user->balance ?? '',
+            'coins' => (int) $user->coins ?? '',
+            'audio_status' => (int) $user->audio_status ?? '',
+            'video_status' => (int) $user->video_status ?? '',
+            'datetime' => Carbon::parse($user->datetime)->format('Y-m-d H:i:s'),
+            'updated_at' => Carbon::parse($user->updated_at)->format('Y-m-d H:i:s'),
+            'created_at' => Carbon::parse($user->created_at)->format('Y-m-d H:i:s'),
+        ],
+    ], 200);
+}
+
+public function send_fcm_token(Request $request)
+{
+    $authenticatedUser = auth('api')->user();
+    if (!$authenticatedUser) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized. Please provide a valid token.',
+        ], 401);
+    }
+
+    // Retrieve input values
+    $user_id = $request->input('user_id');
+    $token = $request->input('token');
+
+    // Validate individual inputs with separate error messages
+    if (empty($user_id)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'user_id is required.',
+        ], 400);
+    }
+
+    if ($token === null) {
+        return response()->json([
+            'success' => false,
+            'message' => 'token is required.',
+        ], 400);
+    }
+
+    // Check if user exists
+    $user = Users::find($user_id);
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not found.',
+        ], 404);
+    }
+
+    // Insert or update FCM token
+    $fcmtoken = fcm_tokens::updateOrCreate(
+        ['user_id' => $user_id],
+        ['token' => $token]
+    );
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Token saved successfully!',
+        'data' => $fcmtoken,
+    ], 200);
+}
+
+public function sendNotification(Request $request)
+{
+    $request->validate([
+        'senderId' => 'required|string',
+        'receiverId' => 'required|string',
+        'callType' => 'required|string',
+        'channelName' => 'required|string',
+        'message' => 'required|string',
+    ]);
+
+    $receiverId = $request->input('receiverId');
+
+    // Check if receiver exists
+    $receiver = Users::find($receiverId);
+    if (!$receiver) {
+        return response()->json([
+            'message' => 'Receiver not found',
+            'success' => false
+        ], 404);
+    }
+
+    // Get FCM token of receiver
+    $fcmToken = fcm_tokens::where('user_id', $receiverId)->value('token');
+    if (!$fcmToken) {
+        return response()->json([
+            'message' => 'Receiver does not have an FCM token',
+            'success' => false
+        ], 404);
+    }
+
+    // Prepare notification data
+    $data = [
+        'senderId' => $request->input('senderId'),
+        'receiverId' => $receiverId,
+        'callType' => $request->input('callType'),
+        'channelName' => $request->input('channelName'),
+        'message' => $request->input('message'),
+    ];
+
+    try {
+        // Send notification using Firebase service
+        $response = $this->firebaseService->sendNotification($fcmToken, $data);
+    
+        return response()->json([
+            'message' => 'Notification sent successfully',
+            'response' => $response,  // Include Firebase response details
+            'data_sent' => $data,  // Include the data that was sent
+            'fcm_token' => $fcmToken,  // Include the FCM token used
+            'success' => true
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Failed to send notification',
+            'error' => $e->getMessage(),
+            'success' => false
+        ], 500);
+    }
+    
+}
+
+public function user_avatar_image(Request $request)
+    {
+        $authenticatedUser = auth('api')->user(); // Retrieve the authenticated user
+
+        if (empty($authenticatedUser)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to retrieve user details.',
+            ], 200);
+        }
+
+        $user_id = $request->input('user_id');
+        
+        if (empty($user_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'user_id is empty.',
+            ], 200);
+        }
+
+        $user = Users::find($user_id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found.',
+            ], 200);
+        }
+
+        $avatar = Avatars::find($user->avatar_id);
+        $gender = $avatar ? $avatar->gender : '';
+
+        $imageUrl = ($avatar && $avatar->image) ? asset('storage/app/public/' . $avatar->image) : '';
+        $voicePath = $user && $user->voice ? asset('storage/app/public/voices/' . $user->voice) : '';
+
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User Avatar retrieved successfully.',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'user_gender' => $user->gender,
+                'avatar_id' => (int) $user->avatar_id,
+                'image' => $imageUrl ?? '',
+            ],
+        ], 200);
+    }
+
+
 
 }

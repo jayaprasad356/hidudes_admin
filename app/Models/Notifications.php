@@ -12,6 +12,8 @@ class Notifications extends Model
         'datetime',
         'gender',
         'language',
+        'logo',
+        'image',
     ];
 
     public function users()

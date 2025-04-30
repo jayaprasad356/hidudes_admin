@@ -41,6 +41,30 @@
                 <input type="text" class="form-control" id="minimum_withdrawals" name="minimum_withdrawals" value="{{ $news->minimum_withdrawals }}" required>
             </div>
 
+            <div class="form-group">
+                <label for="payment_gateway_type">Payment Gateway Type</label>
+                <select class="form-control" id="payment_gateway_type" name="payment_gateway_type" required>
+                    <option value="instamojo" {{ $news->payment_gateway_type == 'instamojo' ? 'selected' : '' }}>instamojo</option>
+                    <option value="razorpay" {{ $news->payment_gateway_type == 'razorpay' ? 'selected' : '' }}>razorpay</option>
+                    <option value="upigateway" {{ $news->payment_gateway_type == 'upigateway' ? 'selected' : '' }}>upigateway</option>
+                </select>
+            </div>
+            
+               <div class="form-group">
+                <label for="free_coins">Free Coins</label>
+                <input type="number" class="form-control" id="free_coins" name="free_coins" value="{{ $news->free_coins }}" required>
+            </div>
+            
+                 <div class="form-group">
+                <label for="terms_conditions">Terms & Conditions</label>
+                <input type="text" class="form-control" id="terms_conditions" name="terms_conditions" value="{{ $news->terms_conditions }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="refund_cancellation">Refund & Cancellation</label>
+                <input type="text" class="form-control" id="refund_cancellation" name="refund_cancellation" value="{{ $news->refund_cancellation }}" required>
+            </div>
+
             <div class="box-footer">
                 <button type="submit" class="btn btn-primary">Update</button>
             </div>

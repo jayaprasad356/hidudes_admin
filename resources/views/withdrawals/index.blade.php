@@ -48,19 +48,18 @@
                     <div class="mb-3 d-flex align-items-center">
                         <!-- Select All Checkbox -->
                         <div class="mr-3">
-                            <input type="checkbox" id="select-all">
+                            <input type="checkbox" name="select_all" id="select-all">
                             <label for="select-all">{{ __('Select All') }}</label>
                         </div>
 
-
                         <!-- Paid Button -->
-                        <button type="submit" name="new_status" value="1" class="btn btn-success ml-3"
+                        <button type="submit" name="status" value="1" class="btn btn-success ml-3" 
                             onclick="return confirm('{{ __('Are you sure you want to mark selected as Paid?') }}')">
                             {{ __('Paid') }}
                         </button>
 
                         <!-- Cancel Button -->
-                        <button type="submit" name="new_status" value="2" class="btn btn-danger ml-2"
+                        <button type="submit" name="status" value="2" class="btn btn-danger ml-2" 
                             onclick="return confirm('{{ __('Are you sure you want to cancel selected withdrawals?') }}')">
                             {{ __('Cancel') }}
                         </button>
@@ -116,11 +115,11 @@
                                                 <i class="fa fa-question-circle text-secondary"></i> <span class="font-weight-bold">{{ __('Unknown') }}</span>
                                             @endif
                                         </td>
-                                        <td>{{ $withdrawal->users->bank ?? '' }}</td>
-                                        <td>{{ $withdrawal->users->branch ?? '' }}</td>
-                                        <td>{{ $withdrawal->users->ifsc ?? '' }}</td>
-                                        <td>{{ $withdrawal->users->account_num ?? '' }}</td>
-                                        <td>{{ $withdrawal->users->holder_name ?? '' }}</td>
+                                        <td>{{ $withdrawal->bank ?? '-' }}</td>
+                                        <td>{{ $withdrawal->branch ?? '-' }}</td>
+                                        <td>{{ $withdrawal->ifsc ?? '-' }}</td>
+                                        <td>{{ $withdrawal->account_num ?? '-' }}</td>
+                                        <td>{{ $withdrawal->holder_name ?? '-' }}</td>
                                         <td>{{ $withdrawal->users->upi_id ?? '' }}</td>
                                         <td>{{ $withdrawal->datetime }}</td>
                                     </tr>
@@ -131,30 +130,31 @@
                 </div>
 @endsection
 
-@section('js')
-        <script src="{{ asset('plugins/sweetalert2/sweetalert2.min.js') }}"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
-        <script>
-         $(document).ready(function () {
-    // Handle "Select All" checkbox
-    $('#select-all').change(function() {
-        // Get the state of the "Select All" checkbox
-        var isChecked = $(this).prop('checked');
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAllCheckbox = document.getElementById('select-all');
 
-        // Select or deselect all individual checkboxes
-        $('input[name="withdrawal_ids[]"]').prop('checked', isChecked);
+        // Delegated event listener for checkboxes
+        document.addEventListener('change', function (event) {
+            if (event.target && event.target.matches('#select-all')) {
+                // Select all logic
+                const checkboxes = document.querySelectorAll('input[name="withdrawal_ids[]"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+            }
+
+            // Deselect "Select All" if any individual checkbox is unchecked
+            if (event.target && event.target.matches('input[name="withdrawal_ids[]"]')) {
+                if (!event.target.checked) {
+                    selectAllCheckbox.checked = false;
+                } else {
+                    const allChecked = [...document.querySelectorAll('input[name="withdrawal_ids[]"]')]
+                        .every(cb => cb.checked);
+                    selectAllCheckbox.checked = allChecked;
+                }
+            }
+        });
     });
+</script>
 
-    // Handle individual checkboxes
-    $('input[name="withdrawal_ids[]"]').change(function() {
-        // If any individual checkbox is unchecked, uncheck the "Select All" checkbox
-        if ($('input[name="withdrawal_ids[]"]:not(:checked)').length > 0) {
-            $('#select-all').prop('checked', false); // Uncheck "Select All" checkbox
-        } else {
-            $('#select-all').prop('checked', true); // Check "Select All" checkbox if all are selected
-        }
-    });
-});
-
-        </script>
-    @endsection
